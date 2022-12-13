@@ -167,7 +167,7 @@ public class MyHeuristic implements Heuristic {
 	private double lastPhase(Board b, int col){
 		ArrayList<Node> child = b.getSons((byte)col);
 		for (Node n:child){
-			if(contaValide(b)%2!=0)
+			if(contaValide(n.getBoard())%2!=0)
 				return -100000D;
 		}
 		return 1000000D;
