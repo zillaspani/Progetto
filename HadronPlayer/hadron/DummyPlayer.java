@@ -29,8 +29,8 @@ public class DummyPlayer {
 	public static void main(String[] args) {
 		Heuristic h = new GenericHeuristic();
 		DummyPlayer p1 = new DummyPlayer(h);
-		p1.start("127.0.0.1", 8901);
-		//p1.start(args[0], Integer.parseInt(args[1]));
+		//p1.start("127.0.0.1", 8901);
+		p1.start(args[0], Integer.parseInt(args[1]));
 
 	}
 	

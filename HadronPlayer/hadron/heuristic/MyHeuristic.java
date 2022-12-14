@@ -156,10 +156,12 @@ public class MyHeuristic implements Heuristic {
 			if(b.getCol(i+1,j)!=-1) c++;
 			if(b.getCol(i,j-1)!=-1) c++;
 		}
-		if(c==4) return c*-50000D;
-		else if(c==2) return c*-25000D;
+
+		if(c==4) {System.out.println("C = "+c+" if1"); return c*-50000D;}
+		if(c==2) {System.out.println("C = "+c+" if2");return c*-25000D;}
 		else{
 			Random r =new Random();
+			System.out.println("C = "+c+" else");
 			return r.nextDouble()*100000D;
 		}
 	}
