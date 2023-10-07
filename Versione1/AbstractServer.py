@@ -6,6 +6,7 @@ import logging
 import socket
 import json 
 class AbstractServer(ABC):
+    behavioral={}
     values={}
     config={}
     def __init__(self):
@@ -19,6 +20,7 @@ class AbstractServer(ABC):
         #to do: metodo 
         with open("config.json","r") as x:
             self.config=json.loads(x)
+            self.behavioral=self.config[]
         logging("config.json loaded!")
 
     class DataResource(resource.Resource):
@@ -46,13 +48,13 @@ class AbstractServer(ABC):
         def sendResponse(self,response):
             pass
 
-        async def render_get(self, request): #si riferisce agli attuatori
+        async def render_get(self, request):
             '''
             get request handling from sensors
             '''
             try:    
                 request_json=json.loads(request.payload.decode())
-                if self.checkData(self, request):
+                if self.checkData(self, request):#!!PIROX!! Self solo nella dichiarazione del metodo, elimaniamo o ti serve?
                     logging.warning("values not good")
                     raise Exception("Bad values")
                 self.registerData(request_json)
@@ -62,12 +64,24 @@ class AbstractServer(ABC):
                 print(aiocoap.BAD_REQUEST)
                 self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
-    #class Heartbit(resource.Resource):
+    class Heartbit(resource.Resource):
         '''
         Riceve delle get da attuatore e sensore per sapere se stann bene
         '''
 
+    def fromWhere(self,request):
+        request.remote #ho perso la cazzo di istruzione da richiamare per ottenere l'ip del sender
+        
+
+
     class ReceiveState(resource.Resource):
+        '''
+            get request handling from sensors
+        '''
+        async def render_get(self, request):
+        #Prima cosa si vede capire da dove proviene la richiesta
+            field=fromWhere(request)
+
         '''
         Riceve una get dall'attuatore e restituisce una:
         risposta con codice 2.05
