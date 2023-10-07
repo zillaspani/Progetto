@@ -12,23 +12,23 @@ import asyncio
 class Server(resource.Resource):
     def __init__(self):
         super().__init__()
-        self.dati = {"umidita": 0.0, "temperatura": 0.0, "ph": 0.0}
+        self.dati = {"umidita": 0.0, "temperatura": 0.0}
         ''' legggenda
-            0 -> lascia cosi com'è, 
-            1 -> spegni l'attuatore 
-            2 -> accendi l'attuatore
+            0 -> spegni l'attuatore, 
+            1 -> accendi l'attuatore, 
+            2 -> lascia cosi com'è
         '''
         self.risposta= 0
         
     async def render_get(self, request): #si riferisce agli attuatori
         #payload2=f"Umidita: {self.dati['umidita']}%, Temperatura: {self.dati['temperatura']}C, ph: {self.dati['ph']}"
         print("Sto ricevendo una get, comunicazione con l'attuatore per decidere sul suo stato")
-        if self.dati["umidita"] < 40 or self.dati["temperatura"] > 30:
-            self.risposta= 2
-        elif self.dati["umidita"] > 60 or self.dati["temperatura"]< 25:
-             self.risposta=1 
+        if self.dati["umidita"] < 40 or self.dati["temperatura"] > 25:
+            self.risposta= 1
+        elif self.dati["umidita"] > 60 or self.dati["temperatura"]< 15:
+             self.risposta=0
         else:
-            self.risposta=0
+            self.risposta=2
         payload2=f"{self.risposta}"
         payload=payload2.encode("utf-8")
         response = aiocoap.Message(payload=payload)
@@ -46,10 +46,7 @@ class Server(resource.Resource):
                 elif "Temperatura" in part:
                     temperatura = float(part.split(':')[-1].strip().rstrip('C'))
                     self.dati["temperatura"] = temperatura
-                elif "ph" in part:
-                    ph = float(part.split(':')[-1].strip())
-                    self.dati["ph"] = ph
-            print("Umidita: " + str(self.dati["umidita"]) +"%, Temperatura: " + str(self.dati["temperatura"])+ " C, ph: " +str(self.dati["ph"]))
+            print("Umidita: " + str(self.dati["umidita"]) +"%, Temperatura: " + str(self.dati["temperatura"])+ " C")
             return aiocoap.Message(code=aiocoap.CHANGED)
         except ValueError:
             print(aiocoap.BAD_REQUEST)

@@ -1,7 +1,9 @@
 import time
+from Sensore import *
+from Attuatore import *
 from threading import Thread
-INCREMENTO=0.1
-DECREMENTO=0.1
+INCREMENTO_U=1.5
+DECREMENTO_U=1
 #Soglie temperatura
 T_MAX=40.0
 T_MIN=-20.0
@@ -22,11 +24,20 @@ class Campo:
         self.temperatura = temperatura
         self.ph = ph
         self.attuatore=False
+    
+
+
     def stampa_dati(self):
         print(f"Umidità: {self.umidita}%")
         print(f"Temperatura: {self.temperatura}°C")
         print(f"pH: {self.ph}")
 
+    def get_Temperatura(self):
+         return self.temperatura
+    
+    def get_umidita(self):
+         return self.umidita
+    
 
     def attuatore_aperto(self, incremento):
             self.umidita += incremento
@@ -44,11 +55,11 @@ class Andamento (Thread):
             self.campo=campo
         def run(self):
             while True:
-                time.sleep=2
+                time.sleep(2)
                 if campo.attuatore:
-                    campo.attuatore_aperto(0.05)
+                    campo.attuatore_aperto(INCREMENTO_U)
                 else:
-                    campo.attuatore_chiuso(0.03)
+                    campo.attuatore_chiuso(DECREMENTO_U)
 
 class AndamentoStampa (Thread):
         def __init__(self, nome,campo):
@@ -57,8 +68,8 @@ class AndamentoStampa (Thread):
             self.campo=campo
         def run(self):
             while True:
-                time.sleep=2
-                campo.stampa_dati
+                time.sleep(2)
+                campo.stampa_dati()
                  
                  
 
@@ -70,7 +81,19 @@ if __name__ == "__main__":
     print("ciao")
     threadAndamento.start()
     threadStampa.start()
+    s = Sensore("coap://localhost/data")
+    a = Attuatore("coap://localhost/data")
 
 
-#thread1 = Lancio("prova 1")
-#thread1.start()    
+    while True:
+        time.sleep(2)
+        loop = asyncio.get_event_loop()
+        s.set_dati(campo.get_umidita(),campo.get_Temperatura())
+        loop.run_until_complete(s.send_data(s.dati["umidita"], s.dati["temperatura"]))
+        #loop = asyncio.get_event_loop()
+        loop.run_until_complete(a.esegui())
+        campo.attuatore=a.get_stato()
+
+
+
+
