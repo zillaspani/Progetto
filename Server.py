@@ -1,14 +1,19 @@
-import datetime
-import logging
-
 import asyncio
-
 import aiocoap.resource as resource
 from aiocoap.numbers.contentformat import ContentFormat
 import aiocoap
 import aiocoap.resource as resource
 import aiocoap
 import asyncio
+
+#Soglie temperatura
+T_MAX=25.0
+T_MIN=-15.0
+#Soglie umidità
+U_MAX=60.0
+U_MIN=40.0
+
+
 class Server(resource.Resource):
     def __init__(self):
         super().__init__()
@@ -23,9 +28,9 @@ class Server(resource.Resource):
     async def render_get(self, request): #si riferisce agli attuatori
         #payload2=f"Umidita: {self.dati['umidita']}%, Temperatura: {self.dati['temperatura']}C, ph: {self.dati['ph']}"
         print("Sto ricevendo una get, comunicazione con l'attuatore per decidere sul suo stato")
-        if self.dati["umidita"] < 40 or self.dati["temperatura"] > 25:
+        if self.dati["umidita"] < U_MIN or self.dati["temperatura"] > T_MAX:
             self.risposta= 1
-        elif self.dati["umidita"] > 60 or self.dati["temperatura"]< 15:
+        elif self.dati["umidita"] > U_MAX or self.dati["temperatura"]< T_MIN:
              self.risposta=0
         else:
             self.risposta=2

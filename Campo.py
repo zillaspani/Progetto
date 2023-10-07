@@ -2,6 +2,7 @@ import time
 from Sensore import *
 from Attuatore import *
 from threading import Thread
+from colorama import Fore
 INCREMENTO_U=1.5
 DECREMENTO_U=1
 #Soglie temperatura
@@ -16,6 +17,8 @@ U_BASE=50.0
 PH_MAX=0.0
 PH_MIN=14.0
 PH_BASE=7.0
+#EndPoint Server:
+EPDATA="coap://localhost/data"
 
 class Campo:
 
@@ -28,7 +31,7 @@ class Campo:
 
 
     def stampa_dati(self):
-        print(f"Umidità: {self.umidita}%")
+        print(Fore.CYAN+f"Umidità: {self.umidita}%")
         print(f"Temperatura: {self.temperatura}°C")
         print(f"pH: {self.ph}")
 
@@ -78,11 +81,10 @@ if __name__ == "__main__":
     campo = Campo(U_BASE,T_BASE,PH_BASE)
     threadAndamento = Andamento("T1",campo)
     threadStampa= AndamentoStampa("T2",campo)
-    print("ciao")
     threadAndamento.start()
     threadStampa.start()
-    s = Sensore("coap://localhost/data")
-    a = Attuatore("coap://localhost/data")
+    s = Sensore(EPDATA)
+    a = Attuatore(EPDATA)
 
 
     while True:

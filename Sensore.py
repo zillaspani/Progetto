@@ -2,6 +2,7 @@ import time
 import asyncio
 import aiocoap
 
+from colorama import Fore
 from aiocoap import *
 
 class Sensore:
@@ -24,13 +25,13 @@ class Sensore:
             response = await protocol.request(request).response
             
         except aiocoap.error.RequestTimedOut:
-            print("Request timed out")
+            print(Fore.RED+"Request timed out")
             return
         if response.code.is_successful():
-            print("Messaggio inviato con successo")
+            print(Fore.RED+"Messaggio inviato con successo")
             print(response.code)
         else:
-            print(f"Errore nella risposta: {response.code}")
+            print(Fore.RED+f"Errore nella risposta: {response.code}")
         await protocol.shutdown()
         
 '''        
