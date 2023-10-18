@@ -56,11 +56,10 @@ class Attuatore:
         else:
             print(Fore.GREEN+"Impossibile ottenere una risposta dal server")
 
-'''
+
 if __name__ == "__main__":
     server_uri = "coap://localhost/data"  # Cambia con l'URI del tuo server CoAP
     client = Attuatore(server_uri)
     
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client.esegui())
-'''
