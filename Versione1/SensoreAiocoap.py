@@ -1,11 +1,13 @@
+import os
+import sys
+import time
+import psutil
+import aiocoap
+import asyncio
+
 from aiocoap import *
 from colorama import Fore
 from Sensore import Sensore
-
-import sys
-import time
-import aiocoap
-import asyncio
 
 class SensoreAiocoap(Sensore):
     
@@ -15,7 +17,7 @@ class SensoreAiocoap(Sensore):
         payload = f"Umidita: {self.dati['umidita']}%, Temperatura: {self.dati['temperatura']} C"
         print(Fore.RED + payload)
 
-        request = aiocoap.Message(code=aiocoap.POST, uri= self.server_uri, payload=payload.encode("utf-8"))
+        request = aiocoap.Message(code=aiocoap.GET, uri= self.server_uri, payload=payload.encode("utf-8"))
         try:
             response = await protocol.request(request).response
             
@@ -34,7 +36,7 @@ class SensoreAiocoap(Sensore):
 server_uri = sys.argv[1] #per prendere il server_uri da terminale
 
 sensore= SensoreAiocoap(server_uri)
-sensore.print_info()
+sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
 while True:
     time.sleep(5)
     data=sensore.set_dati()

@@ -1,11 +1,10 @@
+import sys
+import random
+
 from abc import abstractmethod
 from colorama import Fore
 
-import os 
-import sys
-import psutil
-import socket
-import random
+
 
 class Sensore:    
     def __init__(self, server_uri):
@@ -14,21 +13,21 @@ class Sensore:
 
     #Metodo comune a tutti i sensore per generare i valori randomici di umidita e temperatura
     def set_dati(self):
-        umidita=random.uniform(40.0,60.0)
-        temperatura=random.uniform(15.0,25.0)
+        umidita=random.uniform(30.0,70.0)
+        temperatura=random.uniform(10.0,30.0)
         self.dati["umidita"]=round(umidita, 2)
         self.dati["temperatura"]=round(temperatura,2)
     
     
     #Metodo comune a tutti i sensori per stampare informazioni di debug 
-    def print_info(self):
-        current_uri = os.path.abspath(__file__)
+    def print_info(self, current_uri, network_interfaces):
+        #current_uri = os.path.abspath(__file__)
         print(Fore.RED+ "URI del file sensore corrente:", current_uri)
         print()
-        network_interfaces = psutil.net_if_addrs()
+        #network_interfaces = psutil.net_if_addrs() 
         interface_name = "eth0"
         ip_address = network_interfaces[interface_name][0].address
-        print(f"Indirizzo IP dell'interfaccia {interface_name}: {ip_address}")
+        print(f"Indirizzo IP dell'interfaccia {interface_name} del sensore: {ip_address}")
         print()
         
     
