@@ -9,6 +9,7 @@ import asyncio
 
 class SensoreAiocoap(Sensore):
     
+    #Implementazione del metodo astratto presente in Sensore.py
     async def send_dati(self):
         protocol = await aiocoap.Context.create_client_context()
         payload = f"Umidita: {self.dati['umidita']}%, Temperatura: {self.dati['temperatura']} C"
@@ -29,7 +30,9 @@ class SensoreAiocoap(Sensore):
             print(Fore.RED+f"Errore nella risposta: {response.code}")
         await protocol.shutdown()
 
-server_uri = sys.argv[1]
+
+server_uri = sys.argv[1] #per prendere il server_uri da terminale
+
 sensore= SensoreAiocoap(server_uri)
 sensore.print_info()
 while True:

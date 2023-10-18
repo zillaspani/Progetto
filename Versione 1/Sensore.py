@@ -3,9 +3,9 @@ from colorama import Fore
 
 import os 
 import sys
+import psutil
 import socket
 import random
-import requests
 
 class Sensore:    
     def __init__(self, server_uri):
@@ -25,13 +25,12 @@ class Sensore:
         current_uri = os.path.abspath(__file__)
         print(Fore.RED+ "URI del file sensore corrente:", current_uri)
         print()
-        ip_address = socket.gethostbyname(socket.gethostname())
-        print(Fore.RED+ "Indirizzo IP del computer da cui è lanciato il sensore:", ip_address)
+        network_interfaces = psutil.net_if_addrs()
+        interface_name = "eth0"
+        ip_address = network_interfaces[interface_name][0].address
+        print(f"Indirizzo IP dell'interfaccia {interface_name}: {ip_address}")
         print()
-        response = requests.get('https://api64.ipify.org?format=json')
-        public_ip = response.json()["ip"]
-        print("L'indirizzo IP pubblico del sensore è:", public_ip)
-        print()
+        
     
     #Metodo astratto per implementare secondo quali politiche/librerie inviare i dati al server
     @abstractmethod
