@@ -37,18 +37,26 @@ class Attuatore:
         if comando is not None:
             print(Fore.GREEN+f"Risposta dal server: {comando}")
             if comando == 1 :
-                print(Fore.GREEN+f"Bisogna accendere l'attuatore")
-                self.stato= True
-            elif comando == 0: 
-                print(Fore.GREEN+f"Bisogna spengnere l'attuatore")
-                self.stato=False
+                if self.stato:
+                    print("L'attuatore è già acceso, è necessario mantenere questo stato")
+                else:
+                    print(Fore.GREEN+f"Bisogna accendere l'attuatore")
+                    self.stato= True
+                    print(Fore.GREEN+f"L'attuatore è stato acceso correttamente")
+            elif comando == 0:
+                if not self.stato: 
+                    print("L'attuatore è già spento, è necessario mantenere questo stato")
+                else:
+                    print(Fore.GREEN+f"Bisogna spengnere l'attuatore")
+                    self.stato=False
+                    print (Fore.GREEN+ f"L'attuatore è stato spento correttamente")
                 
             else:
                 if self.stato==False:
-                    stato=" Spento"
+                    stato="spento"
                 else:
-                    stato="d Acceso"
-                print(Fore.GREEN+f"I valori sono buoni, l'attuatore resta settato a{stato}")
+                    stato="acceso"
+                print(Fore.GREEN+f"I valori sono buoni, l'attuatore resta {stato}")
             print()
                 
         else:
