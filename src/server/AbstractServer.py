@@ -20,6 +20,7 @@ class AbstractServer(ABC):
         except Exception as error:
             logging.error(error)
             logging.error("config.json not loaded")
+            exit("Il server non funziona se il JSON NON VIENE CARICATO CORRETTAMENTE")
              
         logging.info("config.json loaded!")
         
@@ -29,24 +30,34 @@ class AbstractServer(ABC):
         '''
         for campo in self.config:
             for sensore in campo["sensori"]:
-                self.address[sensore["ip"]]=campo["nome"]
+                self.address[sensore["ip"]]=campo["name"]
 
     def initConfig(self):
         '''
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
-        with open("../../config.json","rb") as x:
-            self.config=json.loads(x.read())["campi"]
+        try:
+            with open("../../config.json","rb") as x:
+                self.config=json.loads(x.read())["campi"]
+        except:
+            logging.error("File config.json non presente nella root o problemi nella lettura")
+            exit("Errore nell'apertura del JSON")    
         for campo in self.config:
             self.values[campo["name"]]={}
             valori=campo["valori"]
             for valore in valori:
                 self.values[campo["name"]][valore["name"]]=0.0
-        self.loadBehave()
-        '''
-        self.addressConfig()
-        '''
-        
+        try:
+            self.loadBehave()
+        except:
+            logging.error("Caricamento comportamento fallito")
+            exit()
+        try:
+            self.addressConfig()
+        except:
+            logging.error("Caricamento ip fallito")
+            exit()
+            
         
     def loadBehave(self):
         '''
@@ -55,13 +66,15 @@ class AbstractServer(ABC):
         for campo in self.config:
             valori=campo["valori"]
             nome=campo["name"]
-            self.behavioral[nome]=[]
+            self.behavioral[nome]={}
             for valore in valori:
                 self.behavioral[nome][valore["name"]]={}
-                print(campo[valore["name"]["COMPORTAMENTO"]])   
-                #self.behavioral[nome][valore["name"]]=campo[valore["name"]["COMPORTAMENTO"]]
-        
-    class DataResource(resource.Resource, ABC):
+                self.behavioral[nome][valore["name"]]["intervento"]=campo[valore["name"]]["INTERVENTO"]
+                self.behavioral[nome][valore["name"]]["comportamento"]=[]
+                for comportamento in campo[valore["name"]]["COMPORTAMENTO"]:
+                    self.behavioral[nome][valore["name"]]["comportamento"].append(comportamento)
+          
+    class DataResource(resource.Resource):
         
         '''
         Riceve una get dal sensore e restituisce una:

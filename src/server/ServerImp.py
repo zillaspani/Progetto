@@ -7,6 +7,7 @@ from abc import ABC
 
 class server(AbstractServer):
     
+    
     def sendResponse(self,response):
         return response
 
@@ -23,8 +24,10 @@ if __name__ == "__main__":
         logging.info(f"Avvio server aiocoap su %s ",ip_address)
         asyncio.get_event_loop().run_forever()       
     
-    except:
+    except Exception as ex:
+        logging.error(ex)
         logging.error("server non instanziato")
+        exit()
    
     ip_address = socket.gethostbyname(socket.gethostname())
     logging.info(f"Avvio server aiocoap su %s ",ip_address)

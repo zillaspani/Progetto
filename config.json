@@ -26,7 +26,8 @@
         "umidita": {
           "MAX": 100.0,
           "MIN": 0.0,
-          "INTERVENTO": 50.0
+          "INTERVENTO": 50.0,
+          "COMPORTAMENTO": []
         },
         "sensori": [
           {
