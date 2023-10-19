@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 import asyncio
-import aiocoap.resource as resource
-import aiocoap
 import logging
 import socket
 import json
+from aiocoap import resource
+import aiocoap
 import globalConstants as g
 
 class AbstractServer(ABC):
@@ -14,17 +14,15 @@ class AbstractServer(ABC):
     address={}
 
     def __init__(self):
-        #to do: metodo 
-        self.initConfig() 
-        logging("config.json loaded!")
-        root = resource.Site()
-        root.add_resource(('data',), self.DataResource())
-        root.add_resource(('receive',), self.ReceiveState())
-        asyncio.get_event_loop().run_until_complete(aiocoap.Context.create_server_context(root))
-        ip_address = socket.gethostbyname(socket.gethostname)
-        logging.info(f"Avvio server aiocoap su %s ",ip_address)
-        asyncio.get_event_loop().run_forever()    
-    
+        #to do: metodo
+        try: 
+            self.initConfig()
+        except Exception as error:
+            logging.error(error)
+            logging.error("config.json not loaded")
+             
+        logging.info("config.json loaded!")
+        
     def addressConfig(self):
         '''
             Carica la struttura dati address con valori [ip]->[campo]
@@ -37,26 +35,33 @@ class AbstractServer(ABC):
         '''
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
-        with open("config.json","r") as x:
-            self.config=json.loads(x)
+        with open("../../config.json","rb") as x:
+            self.config=json.loads(x.read())["campi"]
         for campo in self.config:
-            valori=self.config[campo]["valori"]
+            self.values[campo["name"]]={}
+            valori=campo["valori"]
             for valore in valori:
-                self.values[campo][valore]={}
+                self.values[campo["name"]][valore["name"]]=0.0
         self.loadBehave()
+        '''
         self.addressConfig()
-
+        '''
+        
+        
     def loadBehave(self):
         '''
             carica i comportamenti per ogni campo come 
         '''
-        for campo in self.config["campi"]:
-            valori=self.config[campo]["valori"]
+        for campo in self.config:
+            valori=campo["valori"]
+            nome=campo["name"]
+            self.behavioral[nome]=[]
             for valore in valori:
-                nome=campo["nome"]
-                self.behavioral[nome][valore]=campo[valore]["COMPORTAMENTO"]
+                self.behavioral[nome][valore["name"]]={}
+                print(campo[valore["name"]["COMPORTAMENTO"]])   
+                #self.behavioral[nome][valore["name"]]=campo[valore["name"]["COMPORTAMENTO"]]
         
-    class DataResource(resource.Resource):
+    class DataResource(resource.Resource, ABC):
         
         '''
         Riceve una get dal sensore e restituisce una:
@@ -109,7 +114,7 @@ class AbstractServer(ABC):
                 print(aiocoap.BAD_REQUEST)
                 self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
-    class Heartbit(resource.Resource):
+    class Heartbit(aiocoap.resource.Resource):
         '''
         Riceve delle get da attuatore e sensore per sapere se stann bene
         '''
@@ -120,13 +125,13 @@ class AbstractServer(ABC):
         
 
 
-    class ReceiveState(resource.Resource):
+    class ReceiveState(aiocoap.resource.Resource):
         '''
             get request handling from sensors
         '''
         async def render_get(self, request):
         #Prima cosa si vede capire da dove proviene la richiesta
-            field=fromWhere(request)
+            field=self.fromWhere(request)
 
         '''
         Riceve una get dall'attuatore e restituisce una:

@@ -8,8 +8,7 @@ Seconda versione del progetto.
 Un campo è formato da più sotto-campi. All'interno del quale vi saranno 1 Sensore ed un 1 Attuatore
 
 ## Rolling Version
-
-- **1.1.2**
+### 1.1.2
 Versione che utilizza **GIT** 
 Per operare su questa versione fai una branch e successivamente una PULL REQUEST per unire il tuo lavoro
 
