@@ -16,10 +16,14 @@ async def main():
         root = aiocoap.resource.Site()
         root.add_resource(('data',), s.DataResource())
         root.add_resource(('receive',), s.ReceiveState())
-        asyncio.get_event_loop().run_until_complete(aiocoap.Context.create_server_context(root))
         ip_address = socket.gethostbyname(socket.gethostname())
         logging.info(f"Avvio server aiocoap su %s ",ip_address)
-        asyncio.get_event_loop().run_forever()       
+        await aiocoap.Context.create_server_context(root)
+        await asyncio.get_running_loop().create_future()
+        #asyncio.get_event_loop().run_until_complete(aiocoap.Context.create_server_context(root))
+        #ip_address = socket.gethostbyname(socket.gethostname())
+        #logging.info(f"Avvio server aiocoap su %s ",ip_address)
+        #asyncio.get_event_loop().run_forever()       
     
     except Exception as ex:
         logging.error(ex)
