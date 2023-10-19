@@ -4,25 +4,58 @@ import aiocoap.resource as resource
 import aiocoap
 import logging
 import socket
-import json 
+import json
+import globalConstants as g
+
 class AbstractServer(ABC):
     behavioral={}
     values={}
     config={}
+    address={}
+
     def __init__(self):
+        #to do: metodo 
+        self.initConfig() 
+        logging("config.json loaded!")
         root = resource.Site()
         root.add_resource(('data',), self.DataResource())
         root.add_resource(('receive',), self.ReceiveState())
         asyncio.get_event_loop().run_until_complete(aiocoap.Context.create_server_context(root))
         ip_address = socket.gethostbyname(socket.gethostname)
         logging.info(f"Avvio server aiocoap su %s ",ip_address)
-        asyncio.get_event_loop().run_forever()
-        #to do: metodo 
+        asyncio.get_event_loop().run_forever()    
+    
+    def addressConfig(self):
+        '''
+            Carica la struttura dati address con valori [ip]->[campo]
+        '''
+        for campo in self.config:
+            for sensore in campo["sensori"]:
+                self.address[sensore["ip"]]=campo["nome"]
+
+    def initConfig(self):
+        '''
+            Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
+        '''
         with open("config.json","r") as x:
             self.config=json.loads(x)
-            self.behavioral=self.config[]
-        logging("config.json loaded!")
+        for campo in self.config:
+            valori=self.config[campo]["valori"]
+            for valore in valori:
+                self.values[campo][valore]={}
+        self.loadBehave()
+        self.addressConfig()
 
+    def loadBehave(self):
+        '''
+            carica i comportamenti per ogni campo come 
+        '''
+        for campo in self.config["campi"]:
+            valori=self.config[campo]["valori"]
+            for valore in valori:
+                nome=campo["nome"]
+                self.behavioral[nome][valore]=campo[valore]["COMPORTAMENTO"]
+        
     class DataResource(resource.Resource):
         
         '''
@@ -39,10 +72,22 @@ class AbstractServer(ABC):
             '''
             return True
         
-        def registerData(self, richiesta):
+        def getCampo(self,richiesta):
+            '''
+                ritorna il campo an cui appartiene il sensore/attuatore
+            '''
+
+            
+        def addData(self, request):
             '''
             aggiunge i dati a values
             '''
+            campo = self.getCampo(request)
+            request_json=json.loads(request.payload.decode())
+            valori=self.config[campo]["valori"]
+            for value in valori:
+                self.values[value]=g.ALPHA*request_json[value]+(1-g.ALPHA)*self.values[value]
+
             
         @abstractmethod
         def sendResponse(self,response):
@@ -54,10 +99,10 @@ class AbstractServer(ABC):
             '''
             try:    
                 request_json=json.loads(request.payload.decode())
-                if self.checkData(self, request):#!!PIROX!! Self solo nella dichiarazione del metodo, elimaniamo o ti serve?
+                if self.checkData(request_json):#:)
                     logging.warning("values not good")
                     raise Exception("Bad values")
-                self.registerData(request_json)
+                self.addData(request )
                 logging.info()
                 self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
             except ValueError:
@@ -71,6 +116,7 @@ class AbstractServer(ABC):
 
     def fromWhere(self,request):
         request.remote #ho perso la cazzo di istruzione da richiamare per ottenere l'ip del sender
+        #vedi se vuoi unirla a get campo (da implementare) @ZILLASPANI#
         
 
 

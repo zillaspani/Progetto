@@ -2,12 +2,14 @@
   "campi": [
     {
       "nome": "campo0",
+      "valori":["temperatura","umidita"],
       "temperatura": {
         "MAX": 40.0,
         "MIN": -20.0,
         "INTERVENTO": 25.0,
-        "COMPORTAMENTO": [
+        "": [
           {
+
             "attuatore0": true
           },
           {
