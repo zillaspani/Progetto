@@ -37,8 +37,7 @@ class AbstractServer(ABC):
                 self.sensors[campo["name"]]["sensors"][sensore["ip"]]=sensore["name"]
             for attuatore in campo["attuatori"]:
                 self.actuators[campo["name"]]["actuators"][attuatore["ip"]]=attuatore["name"]
-        print(self.actuators)                  
-        
+   
         
     def addressConfig(self):
         '''
@@ -65,7 +64,10 @@ class AbstractServer(ABC):
             self.values[campo["name"]]={}
             valori=campo["valori"]
             for valore in valori:
-                self.values[campo["name"]][valore["name"]]=0.0
+                self.values[campo["name"]][valore["name"]]={}
+                self.values[campo["name"]][valore["name"]]["value"]=0.0
+                self.values[campo["name"]][valore["name"]]["history"]=[]
+                self.values[campo["name"]][valore["name"]]["number"]=0
         try:
             self.loadBehave()
         except Exception as err:
@@ -79,7 +81,7 @@ class AbstractServer(ABC):
             exit()
         try:
             pass
-            #self.loadSensorsAndActuators()
+            self.loadSensorsAndActuators()
         except Exception as err:
             logging.error(err)
             logging.error("Caricamento sensori e/o attuatori fallito")
@@ -124,6 +126,7 @@ class AbstractServer(ABC):
             '''
                 ritorna il campo an cui appartiene il sensore/attuatore
             '''
+            return "campo0" #<- da cambiare
 
             
         def addData(self, request):
@@ -134,8 +137,11 @@ class AbstractServer(ABC):
             request_json=json.loads(request.payload.decode())
             valori=self.config[campo]["valori"]
             for value in valori:
-                self.values[value]=g.ALPHA*request_json[value]+(1-g.ALPHA)*self.values[value]
-
+                self.values[value["name"]]["value"]=g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[value]
+                self.values[value["name"]]["number"]=self.values[value]["number"]+1
+                self.values[value["name"]]["history"].append(value["name"])
+                if len(self.values[value["name"]]["history"])>g.HISTORY:
+                    self.values[value["name"]]["history"].pop()
 
         async def render_get(self, request):
             '''
@@ -146,7 +152,7 @@ class AbstractServer(ABC):
                 if self.checkData(request_json):#:)
                     logging.warning("values not good")
                     raise Exception("Bad values")
-                self.addData(request )
+                self.addData(request)
                 logging.info()
                 self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
             except ValueError:
