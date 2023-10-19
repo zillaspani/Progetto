@@ -12,6 +12,9 @@ class AbstractServer(ABC):
     values={}
     config={}
     address={}
+    sensors={}
+    actuators={}
+    
 
     def __init__(self):
         #to do: metodo
@@ -23,6 +26,21 @@ class AbstractServer(ABC):
             exit("Il server non funziona se il JSON NON VIENE CARICATO CORRETTAMENTE")
              
         logging.info("config.json loaded!")
+        
+    def loadSensorsAndActuators(self):
+        for campo in self.config:
+            self.sensors[campo["name"]]={}
+            self.actuators[campo["name"]]={}
+            self.sensors[campo["name"]]["number"]=len(campo["sensori"])
+            self.sensors[campo["name"]]["sensors"]={}
+            #self.actuators[campo["name"]]["number"]=len(campo["attuatori"])
+            #self.actuators[campo["name"]]["actuators"]={}
+            for sensore in campo["sensori"]:
+                self.sensors[campo["name"]]["sensors"][sensore["ip"]]=sensore["name"]
+            #for attuatore in campo["attuatori"]:
+            #    self.actuators[campo["name"]]["actuators"][attuatore["ip"]]=attuatore["name"]
+        print(self.actuators)                  
+        
         
     def addressConfig(self):
         '''
@@ -38,8 +56,12 @@ class AbstractServer(ABC):
         '''
         try:
             with open("../../config.json","rb") as x:
-                self.config=json.loads(x.read())["campi"]
-        except:
+                print(x)
+                fd=x.read()
+                print(fd)
+                #self.config=json.loads(fd)["campi"]
+        except Exception as err:
+            logging.error(err)
             logging.error("File config.json non presente nella root o problemi nella lettura")
             exit("Errore nell'apertura del JSON")    
         for campo in self.config:
@@ -57,6 +79,13 @@ class AbstractServer(ABC):
         except:
             logging.error("Caricamento ip fallito")
             exit()
+        try:
+            pass
+            #self.loadSensorsAndActuators()
+        except Exception as err:
+            logging.error(err)
+            logging.error("Caricamento sensori e/o attuatori fallito")
+            exit()
             
         
     def loadBehave(self):
@@ -73,7 +102,10 @@ class AbstractServer(ABC):
                 self.behavioral[nome][valore["name"]]["comportamento"]=[]
                 for comportamento in campo[valore["name"]]["COMPORTAMENTO"]:
                     self.behavioral[nome][valore["name"]]["comportamento"].append(comportamento)
-          
+    @abstractmethod
+    def sendResponse(self,response):
+        pass
+    
     class DataResource(resource.Resource):
         
         '''
@@ -106,10 +138,6 @@ class AbstractServer(ABC):
             for value in valori:
                 self.values[value]=g.ALPHA*request_json[value]+(1-g.ALPHA)*self.values[value]
 
-            
-        @abstractmethod
-        def sendResponse(self,response):
-            pass
 
         async def render_get(self, request):
             '''
