@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
-import asyncio
 import logging
-import socket
 import json
 from aiocoap import resource
 import aiocoap
@@ -55,11 +53,10 @@ class AbstractServer(ABC):
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
-            with open("../../config.json","rb") as x:
-                print(x)
-                fd=x.read()
-                print(fd)
-                #self.config=json.loads(fd)["campi"]
+           print("Lanciare il file dalla root")
+           with open("config.json","rb") as x:
+                x=x.read()
+                self.config=json.loads(x)["campi"]
         except Exception as err:
             logging.error(err)
             logging.error("File config.json non presente nella root o problemi nella lettura")
@@ -71,7 +68,8 @@ class AbstractServer(ABC):
                 self.values[campo["name"]][valore["name"]]=0.0
         try:
             self.loadBehave()
-        except:
+        except Exception as err:
+            logging.error(err)
             logging.error("Caricamento comportamento fallito")
             exit()
         try:
