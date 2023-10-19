@@ -6,14 +6,40 @@ import aiocoap
 import globalConstants as g
 
 class AbstractServer(ABC):
-    behavioral={}
-    values={}
     config={}
+    behavioral={}
+    '''
+    struttura dati json per comportamenti
+    campi{
+        valore0{
+            intervento: 0.0 soglia di intervento o cambio comporamento attuatori descritti
+            comportamento= [
+                --insieme di regole
+            ]
+            } ---- per esempio temperatura
+        valore1{
+            come sopra
+            } ---- per esempio umidità
+        
+    }
+    '''
+    values={}
+    '''
+    stuttura che mantiene valori, numero dati arrivati e storia
+    '''
     address={}
+    '''
+    struttra che mantiene gli indirizzi ip e i campi a cui sono associati
+    '''
     sensors={}
+    '''
+    indirizzi ip e sensori, numero divisi per campo
+    '''
     actuators={}
+    '''
+    indirizzi ip e sensori, numero divisi per campo
+    '''
     
-
     def __init__(self):
         #to do: metodo
         logging.basicConfig(level=logging.INFO) 
@@ -27,6 +53,9 @@ class AbstractServer(ABC):
         logging.info("config.json loaded!")
         
     def loadSensorsAndActuators(self):
+        '''
+            Carica strutture dati sensori ed attuatori
+        '''
         for campo in self.config:
             self.sensors[campo["name"]]={}
             self.actuators[campo["name"]]={}
@@ -38,8 +67,7 @@ class AbstractServer(ABC):
                 self.sensors[campo["name"]]["sensors"][sensore["ip"]]=sensore["name"]
             for attuatore in campo["attuatori"]:
                 self.actuators[campo["name"]]["actuators"][attuatore["ip"]]=attuatore["name"]
-        print(self.actuators)                  
-        
+   
         
     def addressConfig(self):
         '''
@@ -54,7 +82,9 @@ class AbstractServer(ABC):
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
+
            print("Run .py file from the root folder")
+
            with open("config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
@@ -66,7 +96,10 @@ class AbstractServer(ABC):
             self.values[campo["name"]]={}
             valori=campo["valori"]
             for valore in valori:
-                self.values[campo["name"]][valore["name"]]=0.0
+                self.values[campo["name"]][valore["name"]]={}
+                self.values[campo["name"]][valore["name"]]["value"]=0.0
+                self.values[campo["name"]][valore["name"]]["history"]=[]
+                self.values[campo["name"]][valore["name"]]["number"]=0
         try:
             self.loadBehave()
         except Exception as err:
@@ -80,7 +113,7 @@ class AbstractServer(ABC):
             exit()
         try:
             pass
-            #self.loadSensorsAndActuators()
+            self.loadSensorsAndActuators()
         except Exception as err:
             logging.error(err)
             logging.error("Loading sensors and/or actuators failed")
@@ -125,6 +158,7 @@ class AbstractServer(ABC):
             '''
                 ritorna il campo an cui appartiene il sensore/attuatore
             '''
+            return "campo0" #<- da cambiare
 
             
         def addData(self, request):
@@ -135,8 +169,11 @@ class AbstractServer(ABC):
             request_json=json.loads(request.payload.decode())
             valori=self.config[campo]["valori"]
             for value in valori:
-                self.values[value]=g.ALPHA*request_json[value]+(1-g.ALPHA)*self.values[value]
-
+                self.values[value["name"]]["value"]=g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[value]
+                self.values[value["name"]]["number"]=self.values[value]["number"]+1
+                self.values[value["name"]]["history"].append(value["name"])
+                if len(self.values[value["name"]]["history"])>g.HISTORY:
+                    self.values[value["name"]]["history"].pop()
 
         async def render_get(self, request):
             '''
@@ -147,12 +184,12 @@ class AbstractServer(ABC):
                 if self.checkData(request_json):#:)
                     logging.warning("Values not good")
                     raise Exception("Bad values")
-                self.addData(request )
+                self.addData(request)
                 logging.info()
-                self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
+                return self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
             except ValueError:
                 print(aiocoap.BAD_REQUEST)
-                self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
+                return self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
     class Heartbit(aiocoap.resource.Resource):
         '''
