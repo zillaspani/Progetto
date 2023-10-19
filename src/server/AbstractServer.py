@@ -31,12 +31,12 @@ class AbstractServer(ABC):
             self.actuators[campo["name"]]={}
             self.sensors[campo["name"]]["number"]=len(campo["sensori"])
             self.sensors[campo["name"]]["sensors"]={}
-            #self.actuators[campo["name"]]["number"]=len(campo["attuatori"])
-            #self.actuators[campo["name"]]["actuators"]={}
+            self.actuators[campo["name"]]["number"]=len(campo["attuatori"])
+            self.actuators[campo["name"]]["actuators"]={}
             for sensore in campo["sensori"]:
                 self.sensors[campo["name"]]["sensors"][sensore["ip"]]=sensore["name"]
-            #for attuatore in campo["attuatori"]:
-            #    self.actuators[campo["name"]]["actuators"][attuatore["ip"]]=attuatore["name"]
+            for attuatore in campo["attuatori"]:
+                self.actuators[campo["name"]]["actuators"][attuatore["ip"]]=attuatore["name"]
         print(self.actuators)                  
         
         
