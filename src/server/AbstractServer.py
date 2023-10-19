@@ -6,14 +6,40 @@ import aiocoap
 import globalConstants as g
 
 class AbstractServer(ABC):
-    behavioral={}
-    values={}
     config={}
+    behavioral={}
+    '''
+    struttura dati json per comportamenti
+    campi{
+        valore0{
+            intervento: 0.0 soglia di intervento o cambio comporamento attuatori descritti
+            comportamento= [
+                --insieme di regole
+            ]
+            } ---- per esempio temperatura
+        valore1{
+            come sopra
+            } ---- per esempio umidità
+        
+    }
+    '''
+    values={}
+    '''
+    stuttura che mantiene valori, numero dati arrivati e storia
+    '''
     address={}
+    '''
+    struttra che mantiene gli indirizzi ip e i campi a cui sono associati
+    '''
     sensors={}
+    '''
+    indirizzi ip e sensori, numero divisi per campo
+    '''
     actuators={}
+    '''
+    indirizzi ip e sensori, numero divisi per campo
+    '''
     
-
     def __init__(self):
         #to do: metodo
         try: 
@@ -26,6 +52,9 @@ class AbstractServer(ABC):
         logging.info("config.json loaded!")
         
     def loadSensorsAndActuators(self):
+        '''
+            Carica strutture dati sensori ed attuatori
+        '''
         for campo in self.config:
             self.sensors[campo["name"]]={}
             self.actuators[campo["name"]]={}
@@ -52,7 +81,7 @@ class AbstractServer(ABC):
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
-           print("Lanciare il file dalla root")
+           logging.info("ricordati di lanciare il file dalla root")
            with open("config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
@@ -154,10 +183,10 @@ class AbstractServer(ABC):
                     raise Exception("Bad values")
                 self.addData(request)
                 logging.info()
-                self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
+                return self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
             except ValueError:
                 print(aiocoap.BAD_REQUEST)
-                self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
+                return self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
     class Heartbit(aiocoap.resource.Resource):
         '''
