@@ -1,0 +1,53 @@
+root - MainThread -  INFO - config.json loaded!
+root - MainThread -  INFO - Avvio server aiocoap su 192.168.145.128 
+websockets.server - MainThread -  INFO - server listening on [::]:8683
+websockets.server - MainThread -  INFO - server listening on 0.0.0.0:8683
+coap-server - MainThread -  DEBUG - Server ready to receive requests
+coap-server - MainThread -  DEBUG - Incoming message <aiocoap.Message at 0xf697130c: CON GET (MID 10879, token d008) remote <UDP6EndpointAddress [::1]:37725 (locally ::1%lo)>, 2 option(s)>
+coap-server - MainThread -  DEBUG - New unique message received
+root - MainThread -  INFO - Qui arriva
+coap-server - MainThread -  DEBUG - Sending message <aiocoap.Message at 0xf6aa3e4c: ACK 2.05 Content (MID 10879, token d008) remote <UDP6EndpointAddress [::1]:37725 (locally ::1%lo)>, 1 option(s), 64 byte(s) payload>
+root - MainThread -  ERROR - 
+root - MainThread -  ERROR - server non instanziato
+asyncio - MainThread -  ERROR - Task exception was never retrieved
+future: <Task finished coro=<main() done, defined at src/server/ServerImp.py:13> exception=SystemExit(None)>
+Traceback (most recent call last):
+  File "/usr/lib/python3.7/asyncio/runners.py", line 43, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.7/asyncio/base_events.py", line 571, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.7/asyncio/base_events.py", line 539, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.7/asyncio/base_events.py", line 1739, in _run_once
+    event_list = self._selector.select(timeout)
+  File "/usr/lib/python3.7/selectors.py", line 468, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "src/server/ServerImp.py", line 23, in main
+    await asyncio.get_running_loop().create_future()
+concurrent.futures._base.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.7/asyncio/runners.py", line 46, in run
+    _cancel_all_tasks(loop)
+  File "/usr/lib/python3.7/asyncio/runners.py", line 62, in _cancel_all_tasks
+    tasks.gather(*to_cancel, loop=loop, return_exceptions=True))
+  File "/usr/lib/python3.7/asyncio/base_events.py", line 571, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.7/asyncio/base_events.py", line 539, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.7/asyncio/base_events.py", line 1775, in _run_once
+    handle._run()
+  File "/usr/lib/python3.7/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "src/server/ServerImp.py", line 32, in main
+    exit()
+  File "/usr/lib/python3.7/_sitebuiltins.py", line 26, in __call__
+    raise SystemExit(code)
+SystemExit: None

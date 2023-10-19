@@ -42,12 +42,13 @@ class AbstractServer(ABC):
     
     def __init__(self):
         #to do: metodo
+        logging.basicConfig(level=logging.INFO) 
         try: 
             self.initConfig()
         except Exception as error:
             logging.error(error)
             logging.error("config.json not loaded")
-            exit("Il server non funziona se il JSON NON VIENE CARICATO CORRETTAMENTE")
+            exit("Server cannot work if JSON file is not right loaded")
              
         logging.info("config.json loaded!")
         
@@ -81,14 +82,16 @@ class AbstractServer(ABC):
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
-           logging.info("ricordati di lanciare il file dalla root")
+
+           print("Run .py file from the root folder")
+
            with open("config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
         except Exception as err:
             logging.error(err)
-            logging.error("File config.json non presente nella root o problemi nella lettura")
-            exit("Errore nell'apertura del JSON")    
+            logging.error("File config.json not present in root folder o reading problem")
+            exit("Error opening JSON")    
         for campo in self.config:
             self.values[campo["name"]]={}
             valori=campo["valori"]
@@ -101,19 +104,19 @@ class AbstractServer(ABC):
             self.loadBehave()
         except Exception as err:
             logging.error(err)
-            logging.error("Caricamento comportamento fallito")
+            logging.error("Loading behavior failed")
             exit()
         try:
             self.addressConfig()
         except:
-            logging.error("Caricamento ip fallito")
+            logging.error("Loading ip address failed")
             exit()
         try:
             pass
             self.loadSensorsAndActuators()
         except Exception as err:
             logging.error(err)
-            logging.error("Caricamento sensori e/o attuatori fallito")
+            logging.error("Loading sensors and/or actuators failed")
             exit()
             
         
@@ -179,7 +182,7 @@ class AbstractServer(ABC):
             try:    
                 request_json=json.loads(request.payload.decode())
                 if self.checkData(request_json):#:)
-                    logging.warning("values not good")
+                    logging.warning("Values not good")
                     raise Exception("Bad values")
                 self.addData(request)
                 logging.info()
@@ -203,9 +206,6 @@ class AbstractServer(ABC):
         '''
             get request handling from sensors
         '''
-        async def render_get(self, request):
-        #Prima cosa si vede capire da dove proviene la richiesta
-            field=self.fromWhere(request)
 
         '''
         Riceve una get dall'attuatore e restituisce una:
@@ -232,3 +232,11 @@ class AbstractServer(ABC):
     '''
 
 
+    class DummyResource(resource.Resource):
+        async def render_get(self, request):
+            logging.info("Qui arriva")
+            text = ["Request came from %s." % request.remote.hostinfo]
+            print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+            text.append("The server address used %s." % request.remote.hostinfo_local)
+
+            return aiocoap.Message(content_format=0, payload="CCC\n".join(text).encode('utf8'))
