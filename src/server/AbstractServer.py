@@ -159,9 +159,9 @@ class AbstractServer(ABC):
                 nomecampo=c["name"]
         for value in valori:
             print(value)
-            self.values[nomecampo][value["name"]]["value"]=g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"]
+            self.values[nomecampo][value["name"]]["value"]=round(g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"],2)
             self.values[nomecampo][value["name"]]["number"]=self.values[nomecampo][value["name"]]["number"]+1
-            self.values[nomecampo][value["name"]]["history"].append(value["name"])
+            self.values[nomecampo][value["name"]]["history"].append(request_json[value["name"]])
             if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
                 self.values[nomecampo][value["name"]]["history"].pop()
         print(self.values)
