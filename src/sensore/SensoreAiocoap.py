@@ -4,6 +4,7 @@ import time
 import psutil
 import aiocoap
 import asyncio
+import json
 
 from aiocoap import *
 from colorama import Fore
@@ -14,10 +15,10 @@ class SensoreAiocoap(Sensore):
     #Implementazione del metodo astratto presente in Sensore.py
     async def send_dati(self):
         protocol = await aiocoap.Context.create_client_context()
-        payload = f"Umidita: {self.dati['umidita']}%, Temperatura: {self.dati['temperatura']} C"
-        print(Fore.RED + payload)
+        
+        #print(Fore.RED + payload)
 
-        request = aiocoap.Message(code=aiocoap.GET, uri= self.server_uri, payload=payload.encode("utf-8"))
+        request = aiocoap.Message(code=aiocoap.GET, uri= self.server_uri, payload= json.dumps(self.dati).encode("utf-8"))
         try:
             response = await protocol.request(request).response
             
@@ -36,7 +37,7 @@ class SensoreAiocoap(Sensore):
 server_uri = sys.argv[1] #per prendere il server_uri da terminale
 
 sensore= SensoreAiocoap(server_uri)
-sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
+#sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
 while True:
     time.sleep(5)
     data=sensore.set_dati()

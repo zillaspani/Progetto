@@ -3,6 +3,7 @@ import random
 
 from abc import abstractmethod
 from colorama import Fore
+import psutil
 
 
 
@@ -25,8 +26,9 @@ class Sensore:
         print(Fore.RED+ "URI del file sensore corrente:", current_uri)
         print()
         #network_interfaces = psutil.net_if_addrs() 
-        interface_name = "eth0"
-        ip_address = network_interfaces[interface_name][0].address
+        #interface_name=psutil.net_if_addrs()
+        print(interface_name)
+        ip_address = network_interfaces[interface_name[0]][0].address
         print(f"Indirizzo IP dell'interfaccia {interface_name} del sensore: {ip_address}")
         print()
         
