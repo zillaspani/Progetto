@@ -7,7 +7,6 @@ import globalConstants as g
 #from Utils import utils Sarò un coglione ma non riesco a farlo funzionare
 
 class AbstractServer(ABC):
-    
     config={}
     behavioral={}
     '''
@@ -43,7 +42,6 @@ class AbstractServer(ABC):
     '''
     
     def __init__(self):
-        #to do: metodo
         logging.basicConfig(level=logging.INFO)
         logging.getLogger("coap-server").setLevel(logging.DEBUG) 
         try: 
@@ -79,15 +77,17 @@ class AbstractServer(ABC):
         for campo in self.config:
             for sensore in campo["sensori"]:
                 self.address[sensore["ip"]]=campo["name"]
+        for campo in self.config:
+            for attuatore in campo["attuatori"]:
+                self.address[attuatore["ip"]]=campo["name"]
+
 
     def initConfig(self):
         '''
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
-
            print("Run .py file from the root folder")
-
            with open("config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
@@ -121,7 +121,46 @@ class AbstractServer(ABC):
             logging.error(err)
             logging.error("Loading sensors and/or actuators failed")
             exit()
-            
+
+    def getBehave(self,address):
+        '''
+            Dato l'ip dell'attuatore restituisce il suo comportamento.
+            Assunzione:
+            Diamo importantanza all'umidità, dunque qualora le soglie di intervento fossero entrambe nella
+            zona critica, si utilizza il comportamento definito per la temperatura.
+        '''
+        target=None
+        campo=self.address[address]
+        name=self.actuators[campo]["actuators"][address]
+        temperatura=self.values[campo]["temperatura"]["value"]
+        umidita=self.values[campo]["umidita"]["value"]
+        interventoT=self.behavioral[campo]["temperatura"]["intervento"]
+        interventoU=self.behavioral[campo]["umidita"]["intervento"]
+        if(temperatura>=interventoT):
+            target="temperatura"
+        if(umidita>=interventoU):       #in accordo alle assunzioni, se l'umidità
+            target="umidita"            #supera la soglia, si agirà sempre su questa indipendentemente
+                                        #dalla temperatura
+        if target==None:    
+            return None
+        else:
+            for comportamento in self.behavioral[campo][target]["comportamento"]:
+                if name in comportamento:
+                    return comportamento[name]
+        
+
+
+
+    def hardValues(self,campo,temp,umid):
+        '''
+        Metodo per hardcodare i valori di temperatura e umidità ai fini di testing
+        '''
+        self.values[campo]["temperatura"]["value"]=float(temp)
+        self.values[campo]["umidita"]["value"]=float(umid)
+
+
+        
+
         
     def loadBehave(self):
         '''
@@ -133,10 +172,17 @@ class AbstractServer(ABC):
             self.behavioral[nome]={}
             for valore in valori:
                 self.behavioral[nome][valore["name"]]={}
-                self.behavioral[nome][valore["name"]]["intervento"]=campo[valore["name"]]["INTERVENTO"]
+                self.behavioral[nome][valore["name"]]["intervento"]=campo[valore["name"]]["intervento"]
                 self.behavioral[nome][valore["name"]]["comportamento"]=[]
-                for comportamento in campo[valore["name"]]["COMPORTAMENTO"]:
+                for comportamento in campo[valore["name"]]["comportamento"]:
                     self.behavioral[nome][valore["name"]]["comportamento"].append(comportamento)
+
+    def pretty_print(values):
+        json_formatted_str = json.dumps(values, indent=2)
+        print(json_formatted_str)
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
     @abstractmethod
     def sendResponse(self,response):
         pass
@@ -240,9 +286,16 @@ class AbstractServer(ABC):
             self.s=s
         
         async def render_get(self, request):
-            dati = {"state":True}
             ip=self.s.address_parser(request.remote.hostinfo)['address']
-            payload=self.s.json_encoder(dati)
+            #Eliminare in fase di produzione e testing su GNS:
+            print("Real ip: "+ip)
+            testing_ip="192.168.1.3"
+            print("Testing ip: "+testing_ip)
+            ip=testing_ip
+            #################################################
+            comportamento=self.s.getBehave(ip)
+            state={"state":comportamento}
+            payload=self.s.json_encoder(state)
             #payload=utils.json_encoder(dati,"utf-8")
             return self.s.sendResponse(aiocoap.Message(payload=payload))
 

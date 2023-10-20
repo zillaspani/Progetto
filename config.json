@@ -11,10 +11,10 @@
         }
       ],
       "temperatura": {
-        "MAX": 40.0,
-        "MIN": -20.0,
-        "INTERVENTO": 25.0,
-        "COMPORTAMENTO": [
+        "max": 40.0,
+        "min": -20.0,
+        "intervento": 25.0,
+        "comportamento": [
           {
             "attuatore0": true
           },
@@ -24,29 +24,93 @@
         ]
       },
       "umidita": {
-        "MAX": 100.0,
-        "MIN": 0.0,
-        "INTERVENTO": 50.0,
-        "COMPORTAMENTO": []
+        "max": 100.0,
+        "min": 0.0,
+        "intervento": 50.0,
+        "comportamento": [
+          {
+            "attuatore0": false
+          },
+          {
+            "attuatore1": true
+          }
+        ]
       },
       "sensori": [
         {
           "name": "sensore0",
-          "ip": "192.168.1.2"
+          "ip": "192.168.1.1"
         },
         {
           "name": "sensore1",
-          "ip": "192.168.1.3"
+          "ip": "192.168.1.2"
         }
       ],
       "attuatori": [
         {
           "name": "attuatore0",
-          "ip": "192.168.1.4"
+          "ip": "192.168.1.3"
         },
         {
           "name": "attuatore1",
-          "ip": "192.168.1.5"
+          "ip": "192.168.1.4"
+        }
+      ]
+    },
+    {
+      "name": "campo1",
+      "valori": [
+        {
+          "name": "temperatura"
+        },
+        {
+          "name": "umidita"
+        }
+      ],
+      "temperatura": {
+        "max": 40.0,
+        "min": -20.0,
+        "intervento": 30.0,
+        "comportamento": [
+          {
+            "attuatore0": true
+          },
+          {
+            "attuatore1": true
+          }
+        ]
+      },
+      "umidita": {
+        "max": 100.0,
+        "min": 0.0,
+        "intervento": 60.0,
+        "comportamento": [
+          {
+            "attuatore0": false
+          },
+          {
+            "attuatore1": false
+          }
+        ]
+      },
+      "sensori": [
+        {
+          "name": "sensore0",
+          "ip": "192.168.1.6"
+        },
+        {
+          "name": "sensore1",
+          "ip": "192.168.1.7"
+        }
+      ],
+      "attuatori": [
+        {
+          "name": "attuatore0",
+          "ip": "192.168.1.8"
+        },
+        {
+          "name": "attuatore1",
+          "ip": "192.168.1.9"
         }
       ]
     }
