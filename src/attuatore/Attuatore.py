@@ -54,45 +54,6 @@ class Attuatore:
             
             print(payload['state'])
         
-
-
-
-    #Metodo comune a tutti gli attuatori che analizzano il numero ricevuto dal server
-    async def esegui(self): 
-        comando = await self.invia_richiesta()
-        if comando is not None:
-            print(Fore.GREEN+f"Risposta dal server: {comando}")
-            if comando == 1 :
-                if self.stato:
-                    print("L'attuatore è già acceso, è necessario mantenere questo stato")
-                else:
-                    print(Fore.GREEN+f"Bisogna accendere l'attuatore")
-                    self.stato= True
-                    print(Fore.GREEN+f"L'attuatore è stato acceso correttamente")
-            elif comando == 0:
-                if not self.stato: 
-                    print("L'attuatore è già spento, è necessario mantenere questo stato")
-                else:
-                    print(Fore.GREEN+f"Bisogna spengnere l'attuatore")
-                    self.stato=False
-                    print (Fore.GREEN+ f"L'attuatore è stato spento correttamente")
-                
-            else:
-                if self.stato==False:
-                    stato="spento"
-                else:
-                    stato="acceso"
-                print(Fore.GREEN+f"I valori sono buoni, l'attuatore resta {stato}")
-            print()
-                
-        else:
-            print(Fore.GREEN+"Impossibile ottenere una risposta dal server")
-    
-
-
-    
-    
-
 #Controllo fatto quando si lancia l'attuatore per verificare che sia specificato il server
 if len(sys.argv) != 2:
     print("Usage: python3 Attuatore*.py <IP_SERVER> ONLY IP")

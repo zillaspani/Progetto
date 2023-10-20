@@ -68,8 +68,7 @@ class AbstractServer(ABC):
                 self.sensors[campo["name"]]["sensors"][sensore["ip"]]=sensore["name"]
             for attuatore in campo["attuatori"]:
                 self.actuators[campo["name"]]["actuators"][attuatore["ip"]]=attuatore["name"]
-   
-        
+       
     def addressConfig(self):
         '''
             Carica la struttura dati address con valori [ip]->[campo]
@@ -80,7 +79,6 @@ class AbstractServer(ABC):
         for campo in self.config:
             for attuatore in campo["attuatori"]:
                 self.address[attuatore["ip"]]=campo["name"]
-
 
     def initConfig(self):
         '''
@@ -148,20 +146,13 @@ class AbstractServer(ABC):
                 if name in comportamento:
                     return comportamento[name]
         
-
-
-
     def hardValues(self,campo,temp,umid):
         '''
         Metodo per hardcodare i valori di temperatura e umidità ai fini di testing
         '''
         self.values[campo]["temperatura"]["value"]=float(temp)
         self.values[campo]["umidita"]["value"]=float(umid)
-
-
-        
-
-        
+   
     def loadBehave(self):
         '''
             carica i comportamenti per ogni campo come 
@@ -180,20 +171,11 @@ class AbstractServer(ABC):
     def pretty_print(values):
         json_formatted_str = json.dumps(values, indent=2)
         print(json_formatted_str)
-
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-    @abstractmethod
-    def sendResponse(self,response):
-        pass
     
-    def getCampo(self,richiesta):
-        '''
-            ritorna il campo an cui appartiene il sensore/attuatore
-        '''
-        return "campo0" #<- da cambiare
+    def fromWhere(self,request):
+        request.remote #ho perso la cazzo di istruzione da richiamare per ottenere l'ip del sender
+        #vedi se vuoi unirla a get campo (da implementare) @ZILLASPANI#
 
-        
     def addData(self, request):
         '''
         aggiunge i dati a values
@@ -212,7 +194,13 @@ class AbstractServer(ABC):
             if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
                 self.values[nomecampo][value["name"]]["history"].pop()
         print(self.values)
-    
+
+    def getCampo(self,richiesta):
+        '''
+            ritorna il campo an cui appartiene il sensore/attuatore
+        '''
+        return "campo0" #<- da cambiare
+
     def json_encoder(self,data):
         return json.dumps(data).encode("utf-8")
     
@@ -220,6 +208,18 @@ class AbstractServer(ABC):
         pars=str(host).split(":")
         return {"address":pars[0],"port":pars[1]}
 
+    def checkData(self, richiesta):
+        '''
+        check fitting of the data with statistical models (forse)
+        '''
+        return True
+
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+    @abstractmethod
+    def sendResponse(self,response):
+        pass
+    
     class DataResource(resource.Resource):
         s=None
         
@@ -234,13 +234,7 @@ class AbstractServer(ABC):
         def getData():
             pass
         
-        def checkData(self, richiesta):
-            '''
-            check fitting of the data with statistical models (forse)
-            '''
-            return True
-        
-      
+              
         async def render_get(self, request):
             '''
             get request handling from sensors
@@ -248,7 +242,7 @@ class AbstractServer(ABC):
             try:
                 print(request.payload.decode())    
                 request_json=json.loads(request.payload.decode())
-                if not self.checkData(request_json):#:)
+                if not self.s.checkData(request_json):#:)
                     logging.warning("Values not good")
                     raise Exception("Bad values")
                
@@ -263,17 +257,6 @@ class AbstractServer(ABC):
         Riceve delle get da attuatore e sensore per sapere se stann bene
         '''
 
-    def fromWhere(self,request):
-        request.remote #ho perso la cazzo di istruzione da richiamare per ottenere l'ip del sender
-        #vedi se vuoi unirla a get campo (da implementare) @ZILLASPANI#
-        
-    def get_expected_state(self,address):
-        'TO FINISH'
-        return None
-    
-    def get_address(self,request):
-        return None
-
     class ReceiveState(aiocoap.resource.Resource):
         '''
         Riceve una get dal sensore e restituisce una:
@@ -286,18 +269,24 @@ class AbstractServer(ABC):
             self.s=s
         
         async def render_get(self, request):
-            ip=self.s.address_parser(request.remote.hostinfo)['address']
-            #Eliminare in fase di produzione e testing su GNS:
-            print("Real ip: "+ip)
-            testing_ip="192.168.1.3"
-            print("Testing ip: "+testing_ip)
-            ip=testing_ip
-            #################################################
-            comportamento=self.s.getBehave(ip)
-            state={"state":comportamento}
-            payload=self.s.json_encoder(state)
-            #payload=utils.json_encoder(dati,"utf-8")
-            return self.s.sendResponse(aiocoap.Message(payload=payload))
+            try:
+                ip=self.s.address_parser(request.remote.hostinfo)['address']
+                #Eliminare in fase di produzione e testing su GNS:
+                print("Real ip: "+ip)
+                testing_ip="192.168.1.3"
+                print("Testing ip: "+testing_ip)
+                ip=testing_ip
+                #################################################
+                comportamento=self.s.getBehave(ip)
+                state={"state":comportamento}
+                payload=self.s.json_encoder(state)
+                #payload=utils.json_encoder(dati,"utf-8")
+                return self.s.sendResponse(aiocoap.Message(payload=payload))
+            except Exception: #@Pirox, va bene eccezione specifica o questa va bene?
+                return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
+
+
+            
 
     '''
     TO DO:

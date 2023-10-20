@@ -10,29 +10,11 @@ from Attuatore import Attuatore
 
 
 class AttuatoreAiocoap(Attuatore):
-    
-    async def invia_richiesta(self):
-        protocol = await aiocoap.Context.create_client_context()
-        request = aiocoap.Message(code=aiocoap.GET, uri=self.server_uri)
-        try:
-            response = await protocol.request(request).response
-        except aiocoap.error.RequestTimedOut:
-            print(Fore.GREEN+"Richiesta al server CoAP scaduta")
-            return None
-        if response.code.is_successful():
-            try:
-                numero_intero = int(response.payload)
-                return numero_intero
-            except ValueError:
-                print(Fore.GREEN+"Il server ha inviato una risposta non valida")
-                return None
-        else:
-            print(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
-            return None
-    '''
-    Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
-    '''
+        
     async def send_get_request(self, endpoint,payload):
+        '''
+        Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
+        '''
         #return super().send_get_request(endpoint)
         try:
             protocol = await aiocoap.Context.create_client_context()
@@ -42,7 +24,7 @@ class AttuatoreAiocoap(Attuatore):
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint,payload=payload)
 
             response = await protocol.request(request).response
-            logging.info("Richiesta inviata")
+            logging.info(Fore.GREEN+"Richiesta inviata")
         except aiocoap.error.RequestTimedOut:
             logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None
