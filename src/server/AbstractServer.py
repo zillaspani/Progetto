@@ -180,7 +180,8 @@ class AbstractServer(ABC):
             '''
             get request handling from sensors
             '''
-            try:    
+            try:
+                print(request.payload.decode())    
                 request_json=json.loads(request.payload.decode())
                 if self.checkData(request_json):#:)
                     logging.warning("Values not good")
