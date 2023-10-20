@@ -4,6 +4,7 @@ import json
 from aiocoap import resource
 import aiocoap
 import globalConstants as g
+#from Utils import utils Sarò un coglione ma non riesco a farlo funzionare
 
 class AbstractServer(ABC):
     
@@ -166,7 +167,13 @@ class AbstractServer(ABC):
                 self.values[nomecampo][value["name"]]["history"].pop()
         print(self.values)
     
+    def json_encoder(self,data):
+        return json.dumps(data).encode("utf-8")
     
+    def address_parser(self,host):
+        pars=str(host).split(":")
+        return {"address":pars[0],"port":pars[1]}
+
     class DataResource(resource.Resource):
         s=None
         
@@ -202,7 +209,7 @@ class AbstractServer(ABC):
                 self.s.addData(request)
                 return self.s.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
             except ValueError:
-                print(aiocoap.BAD_REQUEST)
+                print(aiocoap.BAD_REQUEST) # @Pirox forse va eliminato, non so vedi tu
                 return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
     class Heartbit(aiocoap.resource.Resource):
@@ -214,19 +221,30 @@ class AbstractServer(ABC):
         request.remote #ho perso la cazzo di istruzione da richiamare per ottenere l'ip del sender
         #vedi se vuoi unirla a get campo (da implementare) @ZILLASPANI#
         
-
+    def get_expected_state(self,address):
+        'TO FINISH'
+        return None
+    
+    def get_address(self,request):
+        return None
 
     class ReceiveState(aiocoap.resource.Resource):
         '''
-            get request handling from sensors
-        '''
-
-        '''
-        Riceve una get dall'attuatore e restituisce una:
+        Riceve una get dal sensore e restituisce una:
         risposta con codice 2.05
-        Funzione che invia nel body della risposta una informazione.
         Attuatore deve inviare un messaggio confermabile
         '''
+        s=None
+
+        def __init__(self,s):
+            self.s=s
+        
+        async def render_get(self, request):
+            dati = {"state":True}
+            ip=self.s.address_parser(request.remote.hostinfo)['address']
+            payload=self.s.json_encoder(dati)
+            #payload=utils.json_encoder(dati,"utf-8")
+            return self.s.sendResponse(aiocoap.Message(payload=payload))
 
     '''
     TO DO:
@@ -235,7 +253,7 @@ class AbstractServer(ABC):
     dati disponibili con media comulativa.
     WARNING NEL CASO IN CUI IL VALORE CORRENTE RICEVUTO SIA DISCORDE CON LA MEDIA CUMILATIVA
     '''
-
+       
 
     '''
     TO DO: Capire come gestire le politiche di istradamento e federazione

@@ -14,7 +14,7 @@ async def main():
         s=server()
         root = aiocoap.resource.Site()
         root.add_resource(('data',), s.DataResource(s))
-        root.add_resource(('receive',), s.ReceiveState())
+        root.add_resource(('receive',), s.ReceiveState(s))
         root.add_resource(('dummy',), s.DummyResource())
         logging.info(f"Resource tree OK")
         await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT])
