@@ -6,6 +6,7 @@ import aiocoap
 import globalConstants as g
 
 class AbstractServer(ABC):
+    
     config={}
     behavioral={}
     '''
@@ -139,12 +140,43 @@ class AbstractServer(ABC):
     def sendResponse(self,response):
         pass
     
+    def getCampo(self,richiesta):
+        '''
+            ritorna il campo an cui appartiene il sensore/attuatore
+        '''
+        return "campo0" #<- da cambiare
+
+        
+    def addData(self, request):
+        '''
+        aggiunge i dati a values
+        '''
+        campo = self.getCampo(request)
+        request_json=json.loads(request.payload.decode())
+        for c in self.config:
+            if c["name"]==campo:
+                valori=c["valori"]
+                nomecampo=c["name"]
+        for value in valori:
+            print(value)
+            self.values[nomecampo][value["name"]]["value"]=g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"]
+            self.values[nomecampo][value["name"]]["number"]=self.values[nomecampo][value["name"]]["number"]+1
+            self.values[nomecampo][value["name"]]["history"].append(value["name"])
+            if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
+                self.values[nomecampo][value["name"]]["history"].pop()
+        print(self.values)
+    
+    
     class DataResource(resource.Resource):
+        s=None
         
         '''
         Riceve una get dal sensore e restituisce una:
         risposta con codice 2.05
         '''
+        
+        def __init__(self,s):
+            self.s=s
             
         def getData():
             pass
@@ -155,27 +187,7 @@ class AbstractServer(ABC):
             '''
             return True
         
-        def getCampo(self,richiesta):
-            '''
-                ritorna il campo an cui appartiene il sensore/attuatore
-            '''
-            return "campo0" #<- da cambiare
-
-            
-        def addData(self, request):
-            '''
-            aggiunge i dati a values
-            '''
-            campo = self.getCampo(request)
-            request_json=json.loads(request.payload.decode())
-            valori=self.config[campo]["valori"]
-            for value in valori:
-                self.values[value["name"]]["value"]=g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[value]
-                self.values[value["name"]]["number"]=self.values[value]["number"]+1
-                self.values[value["name"]]["history"].append(value["name"])
-                if len(self.values[value["name"]]["history"])>g.HISTORY:
-                    self.values[value["name"]]["history"].pop()
-
+      
         async def render_get(self, request):
             '''
             get request handling from sensors
@@ -183,15 +195,15 @@ class AbstractServer(ABC):
             try:
                 print(request.payload.decode())    
                 request_json=json.loads(request.payload.decode())
-                if self.checkData(request_json):#:)
+                if not self.checkData(request_json):#:)
                     logging.warning("Values not good")
                     raise Exception("Bad values")
-                self.addData(request)
-                logging.info()
-                return self.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
+               
+                self.s.addData(request)
+                return self.s.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
             except ValueError:
                 print(aiocoap.BAD_REQUEST)
-                return self.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
+                return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
     class Heartbit(aiocoap.resource.Resource):
         '''
