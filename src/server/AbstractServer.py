@@ -42,7 +42,8 @@ class AbstractServer(ABC):
     
     def __init__(self):
         #to do: metodo
-        logging.basicConfig(level=logging.INFO) 
+        logging.basicConfig(level=logging.INFO)
+        logging.getLogger("coap-server").setLevel(logging.DEBUG) 
         try: 
             self.initConfig()
         except Exception as error:

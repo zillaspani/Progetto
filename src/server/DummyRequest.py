@@ -2,11 +2,12 @@ import logging
 import asyncio
 
 from aiocoap import *
+import aiocoap
 
 async def main():
     protocol = await Context.create_client_context()
 
-    request = Message(code=GET, uri='coap://localhost/dummy')
+    request = Message(code=aiocoap.GET, uri='coap://127.0.0.1:5683/dummy')
 
     try:
         response = await protocol.request(request).response
