@@ -13,7 +13,7 @@ async def main():
     try:
         s=server()
         root = aiocoap.resource.Site()
-        root.add_resource(('data',), s.DataResource())
+        root.add_resource(('data',), s.DataResource(s))
         root.add_resource(('receive',), s.ReceiveState())
         root.add_resource(('dummy',), s.DummyResource())
         logging.info(f"Resource tree OK")
