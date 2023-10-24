@@ -24,6 +24,11 @@ class AbstractServer(ABC):
         
     }
     '''
+    timestamp={}
+    '''
+    Struttura dati <ip,timestamp> contenente l'ultimo timestamp
+    '''
+
     values={}
     '''
     stuttura che mantiene valori, numero dati arrivati e storia
@@ -172,10 +177,6 @@ class AbstractServer(ABC):
         json_formatted_str = json.dumps(values, indent=2)
         print(json_formatted_str)
     
-    def fromWhere(self,request):
-        request.remote #ho perso la cazzo di istruzione da richiamare per ottenere l'ip del sender
-        #vedi se vuoi unirla a get campo (da implementare) @ZILLASPANI#
-
     def addData(self, request):
         '''
         aggiunge i dati a values
@@ -195,16 +196,41 @@ class AbstractServer(ABC):
                 self.values[nomecampo][value["name"]]["history"].pop()
         print(self.values)
 
-    def getCampo(self,richiesta):
+    def getTipo(self,request):
+        '''
+            ritorna il tipo di dispositivo, None se non esiste il dispositivo o il campo
+        '''
+        ip=self.address_parser(request.remote.hostinfo)['address']
+        campo=self.getCampo(request)
+        try:
+            if ip in self.sensors[campo]['sensors']:
+                logging.info(f"Il dispositivo {ip} è un sensore")
+                return "sensor"
+            if ip in self.actuators[campo]['actuators']:
+                logging.info(f"Il dispositivo {ip} è un attuatore")
+                return "attuatore"
+            else:
+                logging.info("Nessun dispositivo trovato")
+                return None
+        except KeyError as e:
+            print("Il campo fornito non esiste")
+            return None
+
+    def getCampo(self,request):
         '''
             ritorna il campo an cui appartiene il sensore/attuatore
         '''
-        return "campo0" #<- da cambiare
+        ip=self.address_parser(request.remote.hostinfo)['address']
+        campo=self.address[ip]
+        return "campo0" #<- da cambiare con campo
 
     def json_encoder(self,data):
         return json.dumps(data).encode("utf-8")
     
     def address_parser(self,host):
+        '''
+        Dato un indirizzo "ip:port" restituisce una struttura accedibile per ip e porta
+        '''
         pars=str(host).split(":")
         return {"address":pars[0],"port":pars[1]}
 
@@ -260,6 +286,16 @@ class AbstractServer(ABC):
 
         def __init__(self,s):
             self.s=s
+
+        async def render_get(self,request):
+            try:
+                request_json=json.loads(request.payload.decode())
+                ip=self.s.address_parser(request.remote.hostinfo)['address']
+                self.s.timestamp[ip]=request_json['time_stamp']
+                self.s.sendResponse(aiocoap.Message(mtype=aiocoap.ACK))
+
+            except Exception:
+                logging.info("HealtRequest Handling failed")
         
         
 

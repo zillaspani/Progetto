@@ -1,6 +1,6 @@
 {
     "uri":"127.0.0.1",
-    "behav": "bastamettereloop",
+    "behav": "loxop",
     "t_unit":2,
     "t_interval":1,
     "max_iter":5

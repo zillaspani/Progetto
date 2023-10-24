@@ -23,9 +23,10 @@ class AttuatoreAiocoap(Attuatore):
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint)
             else:
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint,payload=payload)
+            logging.info(Fore.GREEN+"Richiesta inviata")
 
             response = await protocol.request(request).response
-            logging.info(Fore.GREEN+"Richiesta inviata")
+            
         except aiocoap.error.RequestTimedOut:
             logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None

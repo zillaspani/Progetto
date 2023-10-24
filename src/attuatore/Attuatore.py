@@ -1,12 +1,17 @@
 import asyncio
 import json
 import logging
-
+import time
 
 from colorama import Fore
 from abc import abstractmethod
 
-
+'''
+CON = 0
+NON = 1
+ACK = 2
+RST = 3
+'''
 
 class Attuatore:
     def __init__(self):
@@ -61,7 +66,9 @@ class Attuatore:
         Invia una richiesta al server per far sapere che è vivo
         '''
         endpoint=self.server_uri+"heartbit"
-        self.send_get_request(endpoint,"Alive")
+        time_stamp={"time_stamp":str(time.time())}
+        payload=json.dumps(time_stamp).encode("utf-8")
+        response=await self.send_get_request(endpoint,payload) #timestamp
        
 
     def initConfig(self):
