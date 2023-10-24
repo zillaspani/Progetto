@@ -39,8 +39,7 @@ class Attuatore:
         interface_name = "eth0"
         ip_address = network_interfaces[interface_name][0].address
         print(f"Indirizzo IP dell'interfaccia {interface_name} dell'attuatore: {ip_address}")
-        print()
-    
+        
     #Metodo astratto per implementare secondo quali politiche/librerie inviare i dati al server
     @abstractmethod
     def invia_richiesta(self):
@@ -56,19 +55,28 @@ class Attuatore:
         '''
         endpoint=self.server_uri+"receive"
         response=await self.send_get_request(endpoint,None)
-        if response!=None:
-            payload=json.loads(response.payload.decode())
+
+        response_json=json.loads(response.payload.decode())
+        if response_json['state']!="trap": #@pirox a me piacerebbe che quando non si deve fare nulla la response sia trap
+            self.set_stato=response_json['state']
+            logging.info("State Changed")
+        else:
+            logging.info("State Not Changed")
             
-            print(payload['state'])
+
+        
 
     async def health_request(self):
         '''
         Invia una richiesta al server per far sapere che è vivo
         '''
-        endpoint=self.server_uri+"heartbit"
         time_stamp={"time_stamp":str(time.time())}
         payload=json.dumps(time_stamp).encode("utf-8")
-        response=await self.send_get_request(endpoint,payload) #timestamp
+        endpoint=self.server_uri+"heartbit"
+
+        response=await self.send_get_request(endpoint,payload=payload)
+        
+        print(response)
        
 
     def initConfig(self):

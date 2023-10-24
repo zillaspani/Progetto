@@ -145,7 +145,7 @@ class AbstractServer(ABC):
             target="umidita"            #supera la soglia, si agirà sempre su questa indipendentemente
                                         #dalla temperatura
         if target==None:    
-            return None
+            return "trap"
         else:
             for comportamento in self.behavioral[campo][target]["comportamento"]:
                 if name in comportamento:
@@ -292,12 +292,13 @@ class AbstractServer(ABC):
                 request_json=json.loads(request.payload.decode())
                 ip=self.s.address_parser(request.remote.hostinfo)['address']
                 self.s.timestamp[ip]=request_json['time_stamp']
-                self.s.sendResponse(aiocoap.Message(mtype=aiocoap.ACK))
+
+
+                return self.s.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
 
             except Exception:
                 logging.info("HealtRequest Handling failed")
-        
-        
+           
 
     class ReceiveState(aiocoap.resource.Resource):
         '''
@@ -309,23 +310,25 @@ class AbstractServer(ABC):
 
         def __init__(self,s):
             self.s=s
-        
+
         async def render_get(self, request):
+            '''
+            get request handling from actuators
+            '''
             try:
-                ip=self.s.address_parser(request.remote.hostinfo)['address']
-                #Eliminare in fase di produzione e testing su GNS:
-                print("Real ip: "+ip)
+                
+                #print(request.payload.decode())   
+                
                 testing_ip="192.168.1.3"
-                print("Testing ip: "+testing_ip)
-                ip=testing_ip
-                #################################################
-                comportamento=self.s.getBehave(ip)
-                state={"state":comportamento}
-                payload=self.s.json_encoder(state)
-                #payload=utils.json_encoder(dati,"utf-8")
-                return self.s.sendResponse(aiocoap.Message(payload=payload))
-            except Exception: #@Pirox, va bene eccezione specifica o questa va bene?
+                comportamento=self.s.getBehave(testing_ip)
+                print("Qui arriva "+comportamento)
+                state={'state':comportamento}
+
+                return self.s.sendResponse(aiocoap.Message(payload=json.dumps(state).encode("utf-8")))
+            except ValueError:
+                print(aiocoap.BAD_REQUEST) # @Pirox forse va eliminato, non so vedi tu
                 return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
+        
 
 
             

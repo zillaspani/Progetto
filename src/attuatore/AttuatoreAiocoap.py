@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import time
@@ -26,12 +27,13 @@ class AttuatoreAiocoap(Attuatore):
             logging.info(Fore.GREEN+"Richiesta inviata")
 
             response = await protocol.request(request).response
-            
+            print(response)
         except aiocoap.error.RequestTimedOut:
             logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
                 return response
             except ValueError:
                 logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
