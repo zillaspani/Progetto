@@ -256,6 +256,12 @@ class AbstractServer(ABC):
         '''
         Riceve delle get da attuatore e sensore per sapere se stann bene
         '''
+        s=None
+
+        def __init__(self,s):
+            self.s=s
+        
+        
 
     class ReceiveState(aiocoap.resource.Resource):
         '''

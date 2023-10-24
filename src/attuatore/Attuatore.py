@@ -1,6 +1,7 @@
+import asyncio
 import json
 import logging
-import sys
+
 
 from colorama import Fore
 from abc import abstractmethod
@@ -8,9 +9,10 @@ from abc import abstractmethod
 
 
 class Attuatore:
-    def __init__(self, server_uri):
-        self.server_uri = "coap://"+server_uri+"/"
+    def __init__(self):
+        #self.server_uri = "coap://"+server_uri+"/"
         self.stato= False
+        self.initConfig()
         logging.basicConfig(level=logging.INFO)
         logging.getLogger("coap-server").setLevel(logging.DEBUG)
     
@@ -53,9 +55,41 @@ class Attuatore:
             payload=json.loads(response.payload.decode())
             
             print(payload['state'])
+
+    async def health_request(self):
+        '''
+        Invia una richiesta al server per far sapere che è vivo
+        '''
+        endpoint=self.server_uri+"heartbit"
+        self.send_get_request(endpoint,"Alive")
+       
+
+    def initConfig(self):
+        '''
+            Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
+        '''
+        try:
+           print("Run .py file from the root folder")
+           with open("src/attuatore/config.json","rb") as x: #again problem
+                x=x.read()
+                config=json.loads(x)
+        except Exception as err:
+            logging.error(err)
+            logging.error("File config.json not present in root folder o reading problem")
+            exit("Error opening JSON")    
         
-#Controllo fatto quando si lancia l'attuatore per verificare che sia specificato il server
-if len(sys.argv) != 2:
-    print("Usage: python3 Attuatore*.py <IP_SERVER> ONLY IP")
-    sys.exit(1)
+        try:
+            self.server_uri="coap://"+config['uri']+"/"
+            self.mode=config['behav']
+            self.time_unit=config['t_unit']
+            self.time_interval=config['t_interval']
+            self.max_iter=config['max_iter']
+
+        except Exception as err:
+            logging.error(err)
+            logging.error("Loading behavior failed")
+            exit()
+
+
+
  
