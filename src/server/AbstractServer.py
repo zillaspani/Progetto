@@ -277,18 +277,13 @@ class AbstractServer(ABC):
         async def render_get(self, request):
             try:
                 ip=self.s.address_parser(request.remote.hostinfo)['address']
-                #Eliminare in fase di produzione e testing su GNS:
-                print("Real ip: "+ip)
-                testing_ip="192.168.1.3"
-                print("Testing ip: "+testing_ip)
-                ip=testing_ip
-                #################################################
                 comportamento=self.s.getBehave(ip)
                 state={"state":comportamento}
                 payload=self.s.json_encoder(state)
                 #payload=utils.json_encoder(dati,"utf-8")
                 return self.s.sendResponse(aiocoap.Message(payload=payload))
-            except Exception: #@Pirox, va bene eccezione specifica o questa va bene?
+            except Exception as exception: #@Pirox, va bene eccezione specifica o questa va bene?
+                logging.info(exception)
                 return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
 
 
