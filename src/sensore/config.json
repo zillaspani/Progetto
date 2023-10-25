@@ -1,0 +1,12 @@
+{
+    "uri":"127.0.0.1",
+    "behav": "loop",
+    "t_unit":2,
+    "t_interval":1,
+    "max_iter":200,
+    "humidity_ub": 70.0,
+    "humidity_lb": 30.0,
+    "temperature_ub":30.0,
+    "temperature_lb":10.0,
+    "rounding":2
+}

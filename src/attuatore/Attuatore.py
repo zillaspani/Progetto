@@ -1,12 +1,9 @@
 import json
 import logging
 from colorama import Fore
-from abc import abstractmethod
-
 
 class Attuatore:
     def __init__(self):
-        #self.server_uri = "coap://"+server_uri+"/"
         self.stato= False
         self.initConfig()
         logging.basicConfig(level=logging.INFO)

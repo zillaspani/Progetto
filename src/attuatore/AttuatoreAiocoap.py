@@ -20,11 +20,14 @@ class AttuatoreAiocoap(Attuatore):
         response=await self.send_get_request(endpoint,None)
 
         response_json=json.loads(response.payload.decode())
-        if response_json['state']!="trap": #@pirox a me piacerebbe che quando non si deve fare nulla la response sia trap
-            self.set_stato=response_json['state']
-            logging.info("State Changed")
+        if response==None:
+            logging.error("Something went wrong during server request handling")
         else:
-            logging.info("State Not Changed")
+            if response_json['state']!="trap": #@pirox a me piacerebbe che quando non si deve fare nulla la response sia trap
+                self.set_stato=response_json['state']
+                logging.info("State Changed")
+            else:
+                logging.info("State Not Changed")
             
 
     async def health_request(self):
@@ -36,8 +39,9 @@ class AttuatoreAiocoap(Attuatore):
         endpoint=self.server_uri+"heartbit"
 
         response=await self.send_get_request(endpoint,payload=payload)
+        if response==None:
+            logging.error("Something went wrong during server request handling")
         
-        print(response)
         
     async def send_get_request(self, endpoint,payload):
         '''
@@ -52,7 +56,6 @@ class AttuatoreAiocoap(Attuatore):
             logging.info(Fore.GREEN+"Richiesta inviata")
 
             response = await protocol.request(request).response
-            print(response)
         except aiocoap.error.RequestTimedOut:
             logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None

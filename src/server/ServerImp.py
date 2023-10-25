@@ -48,8 +48,7 @@ class DataResource(resource.Resource):
         '''
         get request handling from sensors
         '''
-        try:
-            print(request.payload.decode())    
+        try: 
             request_json=json.loads(request.payload.decode())
             if not self.server.checkData(request_json):#:)
                 logging.warning("Values not good")
@@ -58,7 +57,7 @@ class DataResource(resource.Resource):
             self.server.addData(request)
             return aiocoap.Message(code=aiocoap.CHANGED)
         except ValueError:
-            print(aiocoap.BAD_REQUEST) # @Pirox forse va eliminato, non so vedi tu
+            logging.error("Exception in DataResource "+ValueError)
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
 
 class Heartbit(resource.Resource):
@@ -75,10 +74,13 @@ class Heartbit(resource.Resource):
             request_json=json.loads(request.payload.decode())
             ip=self.server.address_parser(request.remote.hostinfo)['address']
             self.server.timestamp[ip]=request_json['time_stamp']
+            logging.info("HealtRequest Handling Success")
             return aiocoap.Message(code=aiocoap.CHANGED)
 
         except Exception:
             logging.info("HealtRequest Handling failed")
+            return aiocoap.Message(code=aiocoap.BAD_REQUEST)
+            
         
 
 class ReceiveState(resource.Resource):
@@ -97,15 +99,14 @@ class ReceiveState(resource.Resource):
         get request handling from actuators
         '''
         try:
-            ip="192.168.1.3" 
+            ip="192.168.1.3" #PIROXXXXXXX OCCCCCCHIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
             #ip=request.remote.ip
             #print(request.payload.decode())   
             comportamento=self.s.getBehave(ip)
-            print("Qui arriva "+comportamento)
             state={'state':comportamento}
-
             return aiocoap.Message(payload=json.dumps(state).encode("utf-8"))
         except ValueError:
+            logging.info("ReceiveState Handling failed")
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
     
 
