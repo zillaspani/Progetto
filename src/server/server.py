@@ -7,7 +7,6 @@ class Server(ABC):
     config={}
     behavioral={}
     '''
-    ciao
     struttura dati json per comportamenti
     campi{
         valore0{

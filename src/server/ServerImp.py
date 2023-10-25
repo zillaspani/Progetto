@@ -64,6 +64,8 @@ class DataResource(resource.Resource):
 class Heartbit(resource.Resource):
     def __init__(self,s):
         super().__init__()
+        self.server=s
+
     '''
     Riceve delle get da attuatore e sensore per sapere se stann bene
     '''
@@ -73,9 +75,7 @@ class Heartbit(resource.Resource):
             request_json=json.loads(request.payload.decode())
             ip=self.server.address_parser(request.remote.hostinfo)['address']
             self.server.timestamp[ip]=request_json['time_stamp']
-
-
-            return self.server.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
+            return aiocoap.Message(code=aiocoap.CHANGED)
 
         except Exception:
             logging.info("HealtRequest Handling failed")
@@ -97,18 +97,16 @@ class ReceiveState(resource.Resource):
         get request handling from actuators
         '''
         try:
-            ip=request.remote.ip
+            ip="192.168.1.3" 
+            #ip=request.remote.ip
             #print(request.payload.decode())   
-            
-            
             comportamento=self.s.getBehave(ip)
             print("Qui arriva "+comportamento)
             state={'state':comportamento}
 
-            return self.s.sendResponse(aiocoap.Message(payload=json.dumps(state).encode("utf-8")))
+            return aiocoap.Message(payload=json.dumps(state).encode("utf-8"))
         except ValueError:
-            print(aiocoap.BAD_REQUEST) # @Pirox forse va eliminato, non so vedi tu
-            return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
+            return aiocoap.Message(code=aiocoap.BAD_REQUEST)
     
 
 
