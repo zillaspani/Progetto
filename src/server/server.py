@@ -1,12 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import logging
 import json
-from aiocoap import resource
-import aiocoap
 import globalConstants as g
-#from Utils import utils Sarò un coglione ma non riesco a farlo funzionare
 
-class AbstractServer(ABC):
+class Server(ABC):
     config={}
     behavioral={}
     '''
@@ -47,7 +44,17 @@ class AbstractServer(ABC):
     '''
     
     def __init__(self):
-        logging.basicConfig(level=logging.INFO)
+        file = logging.FileHandler("sample.log")
+        file.setLevel(logging.DEBUG)
+        
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s') 
+        logging.getLogger("coap-server").setLevel(logging.DEBUG),
+        handlers=[
+        logging.FileHandler("debug.log"),
+        logging.StreamHandler(),
+        file
+        ]
+        logging.info("Loggin Starter")       
         logging.getLogger("coap-server").setLevel(logging.DEBUG) 
         try: 
             self.initConfig()
@@ -242,120 +249,4 @@ class AbstractServer(ABC):
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-    @abstractmethod
-    def sendResponse(self,response):
-        pass
-    
-    class DataResource(resource.Resource):
-        s=None
-        
-        '''
-        Riceve una get dal sensore e restituisce una:
-        risposta con codice 2.05
-        '''
-        
-        def __init__(self,s):
-            self.s=s
-            
-        def getData():
-            pass
-        
-              
-        async def render_get(self, request):
-            '''
-            get request handling from sensors
-            '''
-            try:
-                print(request.payload.decode())    
-                request_json=json.loads(request.payload.decode())
-                if not self.s.checkData(request_json):#:)
-                    logging.warning("Values not good")
-                    raise Exception("Bad values")
-               
-                self.s.addData(request)
-                return self.s.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
-            except ValueError:
-                print(aiocoap.BAD_REQUEST) # @Pirox forse va eliminato, non so vedi tu
-                return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
-
-    class Heartbit(aiocoap.resource.Resource):
-        '''
-        Riceve delle get da attuatore e sensore per sapere se stann bene
-        '''
-        s=None
-
-        def __init__(self,s):
-            self.s=s
-
-        async def render_get(self,request):
-            try:
-                request_json=json.loads(request.payload.decode())
-                ip=self.s.address_parser(request.remote.hostinfo)['address']
-                self.s.timestamp[ip]=request_json['time_stamp']
-
-
-                return self.s.sendResponse(aiocoap.Message(code=aiocoap.CHANGED))
-
-            except Exception:
-                logging.info("HealtRequest Handling failed")
-           
-
-    class ReceiveState(aiocoap.resource.Resource):
-        '''
-        Riceve una get dal sensore e restituisce una:
-        risposta con codice 2.05
-        Attuatore deve inviare un messaggio confermabile
-        '''
-        s=None
-
-        def __init__(self,s):
-            self.s=s
-
-        async def render_get(self, request):
-            '''
-            get request handling from actuators
-            '''
-            try:
-                
-                #print(request.payload.decode())   
-                
-                testing_ip="192.168.1.3"
-                comportamento=self.s.getBehave(testing_ip)
-                print("Qui arriva "+comportamento)
-                state={'state':comportamento}
-
-                return self.s.sendResponse(aiocoap.Message(payload=json.dumps(state).encode("utf-8")))
-            except ValueError:
-                print(aiocoap.BAD_REQUEST) # @Pirox forse va eliminato, non so vedi tu
-                return self.s.sendResponse(aiocoap.Message(code=aiocoap.BAD_REQUEST))
-        
-
-
-            
-
-    '''
-    TO DO:
-    Sistema che ricevuto un dato e l'indirizzo IP effettui controlli base sui valori
-    come formato, segno etc poi valuta la coerenza del dato in relazione agli altri
-    dati disponibili con media comulativa.
-    WARNING NEL CASO IN CUI IL VALORE CORRENTE RICEVUTO SIA DISCORDE CON LA MEDIA CUMILATIVA
-    '''
-       
-
-    '''
-    TO DO: Capire come gestire le politiche di istradamento e federazione
-    '''
-
-    '''
-    Console carina e coccolosa per le informazioni
-    '''
-
-
-    class DummyResource(resource.Resource):
-        async def render_get(self, request):
-            logging.info("Qui arriva")
-            text = ["Request came from %s." % request.remote.hostinfo]
-            print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-            text.append("The server address used %s." % request.remote.hostinfo_local)
-
-            return aiocoap.Message(content_format=0, payload="CCC\n".join(text).encode('utf8'))
+   
