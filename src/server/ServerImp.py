@@ -14,7 +14,6 @@ def close(signum, frame):
         logging.removeHandler(handler)
         handler.close()
         logging.shutdown()
-        
         exit()
     
 async def main():

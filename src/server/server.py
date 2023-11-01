@@ -44,16 +44,11 @@ class Server(ABC):
     '''
     
     def __init__(self):
-        file = logging.FileHandler("sample.log")
+        file = logging.FileHandler("server.log")
         file.setLevel(logging.DEBUG)
-        
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s') 
-        logging.getLogger("coap-server").setLevel(logging.DEBUG),
-        handlers=[
-        logging.FileHandler("debug.log"),
-        logging.StreamHandler(),
-        file
-        ]
+        file.setFormatter( logging.Formatter('%(asctime)s-%(levelname)s-%(message)s', datefmt=' %H:%M:%S')) 
+        logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(message)s', datefmt=' %H:%M:%S') 
+        logging.getLogger().addHandler(file)
         logging.info("Loggin Starter")       
         logging.getLogger("coap-server").setLevel(logging.DEBUG) 
         try: 
@@ -188,20 +183,25 @@ class Server(ABC):
         '''
         aggiunge i dati a values
         '''
-        campo = self.getCampo(request)
-        request_json=json.loads(request.payload.decode())
-        for c in self.config:
-            if c["name"]==campo:
-                valori=c["valori"]
-                nomecampo=c["name"]
-        for value in valori:
-            print(value)
-            self.values[nomecampo][value["name"]]["value"]=round(g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"],2)
-            self.values[nomecampo][value["name"]]["number"]=self.values[nomecampo][value["name"]]["number"]+1
-            self.values[nomecampo][value["name"]]["history"].append(request_json[value["name"]])
-            if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
-                self.values[nomecampo][value["name"]]["history"].pop()
-        print(self.values)
+        try:
+            valori=None
+            campo = self.getCampo(request)
+            request_json=json.loads(request.payload.decode())
+            for c in self.config:
+                if c["name"]==campo:
+                    valori=c["valori"]
+                    nomecampo=c["name"]
+            for value in valori:
+                print(value)
+                self.values[nomecampo][value["name"]]["value"]=round(g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"],2)
+                self.values[nomecampo][value["name"]]["number"]=self.values[nomecampo][value["name"]]["number"]+1
+                self.values[nomecampo][value["name"]]["history"].append(request_json[value["name"]])
+                if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
+                    self.values[nomecampo][value["name"]]["history"].pop()
+            logging.debug(self.values)
+        except Exception as e:
+            logging.error("Problema con l'aggiunta dei dati")
+            logging.exception(e)
 
     def getTipo(self,request):
         '''
@@ -220,16 +220,21 @@ class Server(ABC):
                 logging.info("Nessun dispositivo trovato")
                 return None
         except KeyError as e:
-            print("Il campo fornito non esiste")
+            logging.error("Il campo fornito non esiste")
             return None
 
     def getCampo(self,request):
         '''
             ritorna il campo an cui appartiene il sensore/attuatore
         '''
-        ip=self.address_parser(request.remote.hostinfo)['address']
-        campo=self.address[ip]
-        return "campo0" #<- da cambiare con campo
+        try:
+            ip=self.address_parser(request.remote.hostinfo)['address']
+            campo=self.address[ip]
+        except Exception as e:
+            logging.error("Ip errato/non in config")
+            logging.error(e)
+            return None
+        return campo #<- da cambiare con campo
 
     def json_encoder(self,data):
         return json.dumps(data).encode("utf-8")
