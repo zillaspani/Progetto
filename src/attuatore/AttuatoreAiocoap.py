@@ -1,8 +1,7 @@
-import json
 import os
-import sys
 import time
 import psutil
+import json
 import asyncio
 import aiocoap
 import logging
@@ -12,12 +11,42 @@ from Attuatore import Attuatore
 
 
 class AttuatoreAiocoap(Attuatore):
+
+    async def state_request(self):
+        '''
+        Invia una richiesta al server per conoscere in quale stato deve essere l'attuatore
+        '''
+        endpoint=self.server_uri+"receive"
+        response=await self.send_get_request(endpoint,None)
+
+        response_json=json.loads(response.payload.decode())
+        if response==None:
+            logging.error("Something went wrong during server request handling")
+        else:
+            if response_json['state']!="trap": #@pirox a me piacerebbe che quando non si deve fare nulla la response sia trap
+                self.set_stato=response_json['state']
+                logging.info("State Changed")
+            else:
+                logging.info("State Not Changed")
+            
+
+    async def health_request(self):
+        '''
+        Invia una richiesta al server per far sapere che è vivo
+        '''
+        time_stamp={"time_stamp":str(time.time())}
+        payload=json.dumps(time_stamp).encode("utf-8")
+        endpoint=self.server_uri+"heartbit"
+
+        response=await self.send_get_request(endpoint,payload=payload)
+        if response==None:
+            logging.error("Something went wrong during server request handling")
+        
         
     async def send_get_request(self, endpoint,payload):
         '''
         Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
         '''
-        #return super().send_get_request(endpoint)
         try:
             protocol = await aiocoap.Context.create_client_context()
             if payload==None:
@@ -27,7 +56,6 @@ class AttuatoreAiocoap(Attuatore):
             logging.info(Fore.GREEN+"Richiesta inviata")
 
             response = await protocol.request(request).response
-            print(response)
         except aiocoap.error.RequestTimedOut:
             logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None
@@ -41,18 +69,6 @@ class AttuatoreAiocoap(Attuatore):
         else:
             logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
             return None
-
-'''
-attuatore= AttuatoreAiocoap()
-attuatore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
-while True:
-    time.sleep(5)
-    loop=asyncio.get_event_loop()
-    loop.run_until_complete(attuatore.state_request())
-
-loop=asyncio.get_event_loop()
-loop.run_until_complete(attuatore.state_request())
-'''
 
 
 def main():
