@@ -85,9 +85,8 @@ class Heartbit(resource.Resource):
 
 class ReceiveState(resource.Resource):
     '''
-    Riceve una get dal sensore e restituisce una:
+    Riceve una get dall'attuatore e restituisce una:
     risposta con codice 2.05
-    Attuatore deve inviare un messaggio confermabile
     '''
     s=None
     def __init__(self,s):

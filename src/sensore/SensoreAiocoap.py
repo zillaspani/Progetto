@@ -46,6 +46,18 @@ class SensoreAiocoap(Sensore):
         response=await self.send_get_request(endpoint,payload=payload)
         if response==None:
             logging.error("Something went wrong during server request handling")
+    
+    async def health_request(self):
+        '''
+        Invia una richiesta al server per far sapere che è vivo
+        '''
+        time_stamp={"time_stamp":str(time.time())}
+        payload=json.dumps(time_stamp).encode("utf-8")
+        endpoint=self.server_uri+"heartbit"
+
+        response=await self.send_get_request(endpoint,payload=payload)
+        if response==None:
+            logging.error("Something went wrong during server request handling")
        
 
 def main():
@@ -61,8 +73,8 @@ def main():
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
                 loop.run_until_complete(sensore.data_request())
-                #time.sleep(sensore.time_interval)
-                #loop.run_until_complete(sensore.health_request())
+                time.sleep(sensore.time_interval)
+                loop.run_until_complete(sensore.health_request())
 
                 #fine metodi di routine
                 iter=iter+1
@@ -85,7 +97,7 @@ def run_command(sensore,cmd):
     if cmd == '1':
         loop.run_until_complete(sensore.data_request())
     elif cmd == '2':
-        print("CIAO PINO QUI NON ABBIAMO METODO")
+        loop.run_until_complete(sensore.health_request())
     elif cmd == '0':
         exit("Bye")
     else:

@@ -162,7 +162,7 @@ class Server(ABC):
    
     def loadBehave(self):
         '''
-            carica i comportamenti per ogni campo come 
+            carica i comportamenti per ogni campo come stabilito
         '''
         for campo in self.config:
             valori=campo["valori"]
