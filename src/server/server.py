@@ -179,7 +179,7 @@ class Server(ABC):
         json_formatted_str = json.dumps(values, indent=2)
         print(json_formatted_str)
     
-    def addData(self, request):
+    def addData(self, request_json):
         '''
         aggiunge i dati a values
         '''
@@ -187,7 +187,6 @@ class Server(ABC):
             valori=None
             campo = "campo0" #SOLO IN LOCALE, altrimenti decommenta
             #campo = self.getCampo(request)
-            request_json=json.loads(request)
             for c in self.config:
                 if c["name"]==campo:
                     valori=c["valori"]
