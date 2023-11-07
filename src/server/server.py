@@ -187,7 +187,7 @@ class Server(ABC):
             valori=None
             campo = "campo0" #SOLO IN LOCALE, altrimenti decommenta
             #campo = self.getCampo(request)
-            request_json=json.loads(request.payload.decode())
+            request_json=json.loads(request)
             for c in self.config:
                 if c["name"]==campo:
                     valori=c["valori"]
