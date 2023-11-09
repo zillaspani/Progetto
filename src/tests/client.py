@@ -12,8 +12,8 @@ logging.basicConfig(level=logging.INFO)
 async def main():
     protocol = await Context.create_client_context(transports=["tinydtls"])
     protocol.client_credentials.load_from_dict(
-            {'coaps://127.0.0.1/funziona': {'dtls': {'psk': b'secretPSK','client-identity': b'client_Identity',}}})
-    request = Message(code=GET, uri='coaps://127.0.0.1/funziona')
+            {'coaps://127.0.0.1:5683/*': {'dtls': {'psk': b'secretPSK','client-identity': b'client_Identity',}}})
+    request = Message(code=GET, uri='coaps://127.0.0.1:5683/')
 
     try:
         response = await protocol.request(request).response

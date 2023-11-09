@@ -22,13 +22,17 @@ class TimeResource(resource.Resource):
     """Example resource that can be observed. The `notify` method keeps
     scheduling itself, and calls `update_state` to trigger sending
     notifications."""
-
     def __init__(self):
         super().__init__()
+       
 
     async def render_get(self, request):
         current_time = datetime.datetime.now().isoformat().encode("utf-8")
-        return aiocoap.Message(payload=current_time)
+        try:
+            return aiocoap.Message(payload=current_time)
+        except:
+            pass
+        #await server_pino.shutdown()
 
 
 
@@ -47,7 +51,12 @@ async def main():
     #await aiocoap.Context.create_server_context(root,bind=["127.0.0.1",5683])
     server_pino.server_credentials.load_from_dict(server_cr)
     # Run forever
+    
     await asyncio.get_running_loop().create_future()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        #print(e)
+        pass

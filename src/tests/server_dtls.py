@@ -28,17 +28,18 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 async def main():
+    AIOCOAP_DTLSSERVER_ENABLED=True
     aiocoap.AIOCOAP_DTLSSERVER_ENABLED=True
-   
+    
     # Resource tree creation
     root = resource.Site()
-
-    root.add_resource(['funziona'], funziona())
-    
+    root.add_resource(['*'], funziona())
+    dtls_modules = aiocoap.defaults.dtls_missing_modules()
+    print(dtls_modules)
     trans=aiocoap.defaults.get_default_clienttransports()
-    server_cr={'coaps://127.0.0.1/funziona': {'dtls': {'psk': b'secretPSK','client-identity': b'client_Identity',}}}
-    #self.server.server_credentials.load_from_dict({':client': {"dtls": {"psk": {"ascii": PSK}, "client-identity": {"ascii": identity}}}})
-    await aiocoap.Context.create_server_context(root,bind=["127.0.0.1",5683], transports=["tinydtls_server"],server_credentials=server_cr)
+    server_cr={'coaps://127.0.0.1/': {'dtls': {'psk': b'secretPSK','client-identity': b'client_Identity',}}}
+    
+    await aiocoap.Context.create_server_context(root,bind=["127.0.0.1",5683], server_credentials=server_cr)
 
     # Run forever
     await asyncio.get_running_loop().create_future()

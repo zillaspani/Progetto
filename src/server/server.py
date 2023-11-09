@@ -193,7 +193,6 @@ class Server(ABC):
                     valori=c["valori"]
                     nomecampo=c["name"]
             for value in valori:
-                print(value)
                 self.values[nomecampo][value["name"]]["value"]=round(g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"],2)
                 self.values[nomecampo][value["name"]]["number"]=self.values[nomecampo][value["name"]]["number"]+1
                 self.values[nomecampo][value["name"]]["history"].append(request_json[value["name"]])

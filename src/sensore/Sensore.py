@@ -1,7 +1,6 @@
 import logging
 import json
 import random
-from colorama import Fore
 class Sensore:
     def __init__(self):
         self.initConfig()
@@ -47,10 +46,7 @@ class Sensore:
 
     def print_info(self, current_uri, network_interfaces):
         #current_uri = os.path.abspath(__file__)
-        print(Fore.RED+ "URI del file sensore corrente:", current_uri)
+        print( "URI del file sensore corrente:", current_uri)
         #network_interfaces = psutil.net_if_addrs() 
         #interface_name=psutil.net_if_addrs()
-        print(interface_name)
-        ip_address = network_interfaces[interface_name[0]][0].address
-        print(f"Indirizzo IP dell'interfaccia {interface_name} del sensore: {ip_address}")
-        print()    
+       
