@@ -18,6 +18,9 @@ class SensoreSecure(Sensore):
     aes_key= b'8\x14>V\xb3\xbc`\xa4\xd1\x18\xb4}\xf2\x89\xbf\xd7'
     hmac_key= b'Vlx\x1a(\x8b\xe5\xac@\xce \xff\xeb^\xd9\x19\xef\xc6\x98\x82\xa3\x9a\x89\xc09{\xe0\xfbB\x1a\xac\x0b'
     
+    private_client_key=''
+    public_server_key=''
+    id_client=0
     
     def encrypt_aes_easy(self, data, key):
         cipher=AES.new(key,AES.MODE_ECB)
@@ -48,7 +51,21 @@ class SensoreSecure(Sensore):
         #ritorna un tag a stringa
         return tag
         
-           
+    async def authentication_client(self):
+        '''dal momento che non hanno scambiato i messaggi ancora la chiave simmetrica dovrebbe essere sconosciuta''' 
+        endpoint=self.server_uri+"authentication"
+        '''
+        TO DO
+        hello_str già pensato per inviare al server un json da poter ricercare in config.json del server dove
+        verranno aggiunti le chiavi pubbliche dei sensori e attuatori
+        '''
+        hello_str= json.dumps({'type':'sensori', 'id':'sensore'+ str(self.id_client)})
+        payload=json.dumps(hello_str).encode("utf-8") #byte
+        response=await self.send_get_request(endpoint,payload=payload)
+        print (json.loads(response.payload.decode()))
+        
+        
+              
     
     
     async def send_get_request(self, endpoint,payload):
@@ -115,6 +132,7 @@ def main():
         if  sensore.mode=="loop":
             iter=0
             loop=asyncio.get_event_loop()
+            loop.run_until_complete(sensore.authentication_client())
             while True:
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine

@@ -1,6 +1,7 @@
 import asyncio
 from base64 import b64decode, b64encode
 import logging
+import random
 import globalConstants as g
 from server import Server
 from aiocoap import resource
@@ -11,6 +12,9 @@ from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
 from colorama import Fore
 from Crypto.Util.Padding import pad, unpad
+from Crypto.PublicKey import RSA
+from Crypto.Random import get_random_bytes
+from Crypto.Cipher import AES, PKCS1_OAEP
 
 def close(signum, frame):
     handlers = logging.handlers[:]
@@ -27,6 +31,7 @@ async def main():
         root.add_resource(('data',), DataResource(s))
         root.add_resource(('receive',), ReceiveState(s))
         root.add_resource(('heartbit',), Heartbit(s))
+        root.add_resource(('authentication',), Authentication(s))
         root.add_resource(('dummy',), DummyResource(s))
         logging.info(f"Resource tree OK")
         await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT])
@@ -45,6 +50,9 @@ hmac_key_sensore= b'Vlx\x1a(\x8b\xe5\xac@\xce \xff\xeb^\xd9\x19\xef\xc6\x98\x82\
 
 aes_key_attuatore=b'u\xa3\\\x96\x08\x8e\xd3jc\x0f\xdbq3\xc4\x1d\xde'
 hmac_key_attuatore=b'\xcbV\xfdU\xf5\xcf\xcb\xcczI\xa6p\xaf\xe8=\x18\x18\x17`\xe4\xb0\xaf$a\x0c/\xc8\xach\xda\x92\xc2'
+
+public_sensor_key=''
+public_actuator_key=''
 
 def encrypt_aes_easy(data, key):
         cipher=AES.new(key,AES.MODE_ECB)
@@ -120,6 +128,8 @@ def tag_hmac_sha256(data, key):
         #ritorna un tag a stringa
         return tag 
 
+''''''
+
 class DataResource(resource.Resource):      
     '''
     Riceve una get dal sensore e restituisce una:
@@ -188,7 +198,50 @@ class Heartbit(resource.Resource):
         except Exception:
             logging.info("HealtRequest Handling failed")
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
-            
+
+class Authentication(resource.Resource):
+    s=None
+    def __init__(self,s):
+        super().__init__()
+        self.s=s
+    
+    async def render_get(self, request):
+        try:
+            request_string=json.loads(request.payload.decode())
+            request_json=json.loads(request_string)
+            '''
+            per la versione definitiva andrà a prendere dalle strutture preconfigurate
+            va aggiustato per capire meglio la configurazione del file json, passato in json a posta per prendersi meglio
+            i valori, in questo caso dato per scontato
+            sarà qualcosa che si prende la chiave pubblica in questo caso la prende in maniera hardcodatissima
+            '''
+            if request_json['type']=='sensori':
+                pck=RSA.import_key(open("./src/server/public_sensore.pem").read())
+            elif request_json['type']=='attuatori':
+                pck=RSA.import_key(open("./src/server/public_attuatore.pem").read())
+            else:
+                raise Exception("Type not defined")
+            # Encrypt the session key with the public RSA key
+            session_key = get_random_bytes(16)
+            cipher_rsa = PKCS1_OAEP.new(pck)
+            enc_session_key_bytes = cipher_rsa.encrypt(session_key)
+            secret=str(random.randint(1000000000000000000000000000000000, 1000000000000000000000000000000000000000000000000000)).encode("utf-8") #numero molto grande
+            # Encrypt the data with the AES session key
+            cipher_aes = AES.new(session_key, AES.MODE_EAX)
+            ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret)
+            tag = b64encode(tag_bytes).decode('utf-8')
+            ct = b64encode(ciphertext_bytes).decode('utf-8')
+            enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
+            payload_string= json.dumps({'enc_session_key':str(enc_session_key), 'tag':tag, 'ciphertext':ct, 'nonce':str(cipher_aes.nonce)})
+            print(payload_string)
+            payload=json.dumps(payload_string).encode("utf-8")
+            return aiocoap.Message(payload=payload)
+        except Exception as Ex:
+            logging.error("Exception in DataResource "+ str(Ex))
+            return aiocoap.Message(code=aiocoap.BAD_REQUEST)
+        
+        
+
         
 
 class ReceiveState(resource.Resource):
