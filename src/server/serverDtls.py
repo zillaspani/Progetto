@@ -16,15 +16,13 @@ def close(signum, frame):
         handler.close()
         logging.shutdown()
     exit()
-    
-
-    
+       
 async def main():
     try:
         s=Server()
         root = aiocoap.resource.Site()
         root.add_resource(['data'], DataResource(s))
-        root.add_resource(('receive',), ReceiveState(s))
+        root.add_resource(['receive',], ReceiveState(s))
         
         ##ROBA DTLS
        
@@ -32,13 +30,17 @@ async def main():
         logging.info(f"Resource tree OK")
         dtls_server=await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT],transports=['tinydtls_server'])
         logging.info(f"Avvio server aiocoap su %s e porta %s",g.IP, g.PORT)
-        for cred in s.credentials:
-            server_cr={'coaps://'+g.IP+'/*': {'dtls': cred}}
-            dtls_server.server_credentials.load_from_dict(server_cr)
-        
-        ##
+        #for cred in s.credentials:
+        #    server_cr={'coaps://'+g.IP+'/*': {'dtls': cred}}
+        #    dtls_server.server_credentials.load_from_dict(server_cr)
+        list=[]
+        list={'coaps://'+g.IP+'/data': {'dtls':s.credentials[0]},'coaps://'+g.IP+'/data':{'dtls': s.credentials[0]}}
+        #dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/data': {'dtls': s.credentials}})
+        dtls_server.server_credentials.load_from_dict(list)
+        #dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/receive': {'dtls': s.credentials[4]}})
+        logging.info(f"Credenziali caricaricate")
     except Exception as ex:
-        logging.error(ex)
+        logging.exception(ex)
         logging.error("Server cannot be instantiated")
         exit()
     await asyncio.get_running_loop().create_future()

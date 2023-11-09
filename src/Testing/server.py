@@ -34,8 +34,6 @@ class TimeResource(resource.Resource):
             pass
         #await server_pino.shutdown()
 
-
-
 # logging setup
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("coap-server").setLevel(logging.DEBUG)

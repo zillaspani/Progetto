@@ -1,5 +1,5 @@
 {
-    "name":"sensore1",
+    "name":"sensore0",
     "address":"127.0.0.1",
     "psk":"CAMBIAMI",
     "behav": "loop",

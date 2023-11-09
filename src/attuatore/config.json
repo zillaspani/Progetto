@@ -1,7 +1,9 @@
-{
-    "uri":"127.0.0.1",
+{   
+    "name":"attuatore0",
+    "address":"127.0.0.1",
     "behav": "loop",
     "t_unit":2,
     "t_interval":1,
-    "max_iter":100
+    "max_iter":100,
+    "psk":"CAMBIAMI"
 }

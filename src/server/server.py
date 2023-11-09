@@ -101,8 +101,13 @@ class Server():
                 self.credentials.append(record)
         for campo in self.config:
             for attuatore in campo["attuatori"]:
-                pass
+                record={}
+                record["psk"]=attuatore["psk"].encode()
+                record["client_identity"]=attuatore["name"].encode()
+                #record={"psk": sensore["psk"].encode(),"client_name": sensore["name"].encode()}
+                self.credentials.append(record)
         print(self.credentials)
+        
     
 
     def initConfig(self):

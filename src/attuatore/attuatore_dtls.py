@@ -1,20 +1,36 @@
 import time
-import aiocoap
-import asyncio
 import json
+import asyncio
+import aiocoap
 import logging
 from aiocoap import *
-from Sensore import Sensore
+from Attuatore import Attuatore
 
 
-class SensoreDtls(Sensore):
-    
+class AttuatoreAiocoap(Attuatore):
     protocol=None
-        
     async def start(self):
         self.protocol = await aiocoap.Context.create_client_context(transports=['tinydtls'])
-        client_cr={'coaps://127.0.0.1/data': {'dtls': {'psk': self.psk.encode(),'client-identity':self.name.encode()}}}
+        client_cr={'coaps://127.0.0.1/*': {'dtls': {'psk': self.psk.encode(),'client-identity':self.name.encode()}}}
         self.protocol.client_credentials.load_from_dict(client_cr)
+    
+    async def state_request(self):
+      
+        while True:
+            time.sleep(self.time_unit)
+       
+            endpoint=self.server_uri+"receive"
+            response=await self.send_get_request(endpoint,None)
+
+            response_json=json.loads(response.payload.decode())
+            if response==None:
+                logging.error("Something went wrong during server request handling")
+            else:
+                if response_json['state']!="trap": #@pirox a me piacerebbe che quando non si deve fare nulla la response sia trap
+                    self.set_stato=response_json['state']
+                    logging.info("State Changed")
+                else:
+                    logging.info("State Not Changed")
         
     async def send_get_request(self, endpoint,payload):
         '''
@@ -28,7 +44,6 @@ class SensoreDtls(Sensore):
             logging.info("Richiesta inviata")
 
             response = await self.protocol.request(request).response
-            #logging.info(response)
         except aiocoap.error.RequestTimedOut:
             logging.info("Richiesta al server CoAP scaduta")
             return None
@@ -42,26 +57,18 @@ class SensoreDtls(Sensore):
         else:
             logging.info(f"Errore nella risposta del server: {response.code}")
             return None
-    
-    async def data_request(self):
-        while True:
-            time.sleep(self.time_interval)
-            data=self.get_field_value()
-            endpoint=self.server_uri+"data"
-            payload=json.dumps(data).encode("utf-8")
-            response=await self.send_get_request(endpoint,payload=payload)
-            if response==None:
-                logging.error("Something went wrong during server request handling")
-    
+
 
 def main():
-    sensore=SensoreDtls()
+    attuatore= AttuatoreAiocoap()
+    asyncio.get_event_loop().run_until_complete(attuatore.start())
+    attuatore.server_uri="coaps://"+attuatore.address+"/"  
     loop=asyncio.get_event_loop()
-    loop.run_until_complete(sensore.start())
-    
-    sensore.server_uri="coaps://"+sensore.address+"/"
-    loop.run_until_complete(sensore.data_request())
-           
+                #Inserire qui i metodi di routine
+    loop.run_until_complete(attuatore.state_request())
+                #time.sleep(attuatore.time_interval)
+                #loop.run_until_complete(attuatore.health_request())
 
+          
 if __name__ == "__main__":
     asyncio.run(main())

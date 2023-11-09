@@ -40,7 +40,7 @@ class Sensore:
             logging.error("Loading behavior failed")
             exit()
         try:
-                self.PSK=config['psk']
+                self.psk=config['psk']
         except:
             logging.info("Non è presente il campo PSK, DTLS non disponibile.")
 

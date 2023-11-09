@@ -1,6 +1,6 @@
 import json
 import logging
-from colorama import Fore
+
 
 class Attuatore:
     def __init__(self):
@@ -16,15 +16,12 @@ class Attuatore:
     def set_stato(self,stato):
         self.stato=stato
     
-
-
-    
     def print_info(self, current_uri, network_interfaces):
         '''
         Fantasiaaa
         '''
         #current_uri = os.path.abspath(__file__)
-        print(Fore.GREEN+ "URI dell'attuatore corrente:", current_uri)
+        print("URI dell'attuatore corrente:", current_uri)
         print()
         #network_interfaces = psutil.net_if_addrs()
         interface_name = "eth0"
@@ -47,7 +44,9 @@ class Attuatore:
             exit("Error opening JSON")    
         
         try:
-            self.server_uri="coap://"+config['uri']+"/"
+            self.name=config['name']
+            self.address=config['address']
+            self.server_uri="coap://"+config['address']+"/"
             self.mode=config['behav']
             self.time_unit=config['t_unit']
             self.time_interval=config['t_interval']
@@ -57,6 +56,11 @@ class Attuatore:
             logging.error(err)
             logging.error("Loading behavior failed")
             exit()
+            
+        try:
+            self.psk=config["psk"]
+        except Exception as err:
+            pass
 
 
 

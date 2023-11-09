@@ -1,12 +1,12 @@
 import os
 import time
-import psutil
+
 import json
 import asyncio
 import aiocoap
 import logging
 from aiocoap import *
-from colorama import Fore
+
 from Attuatore import Attuatore
 
 
@@ -53,21 +53,21 @@ class AttuatoreAiocoap(Attuatore):
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint)
             else:
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint,payload=payload)
-            logging.info(Fore.GREEN+"Richiesta inviata")
+            logging.info("Richiesta inviata")
 
             response = await protocol.request(request).response
         except aiocoap.error.RequestTimedOut:
-            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            logging.info("Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                logging.info("Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                logging.info("Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            logging.info(f"Errore nella risposta del server: {response.code}")
             return None
 
 
