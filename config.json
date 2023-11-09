@@ -39,11 +39,13 @@
       "sensori": [
         {
           "name": "sensore0",
-          "ip": "192.168.1.1"
+          "ip": "192.168.1.1",
+          "psk": "CAMBIAMI"
         },
         {
           "name": "sensore1",
-          "ip": "192.168.1.2"
+          "ip": "192.168.1.2",
+          "psk": "CAMBIAMI"
         }
       ],
       "attuatori": [
@@ -96,11 +98,13 @@
       "sensori": [
         {
           "name": "sensore0",
-          "ip": "192.168.1.6"
+          "ip": "192.168.1.6",
+          "psk": "CAMBIAMI"
         },
         {
           "name": "sensore1",
-          "ip": "192.168.1.7"
+          "ip": "192.168.1.7",
+          "psk": "CAMBIAMI"
         }
       ],
       "attuatori": [

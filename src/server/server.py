@@ -1,10 +1,10 @@
-from abc import ABC
 import logging
 import json
 import globalConstants as g
 
-class Server(ABC):
+class Server():
     config={}
+    credentials=[]
     behavioral={}
     '''
     struttura dati json per comportamenti
@@ -86,6 +86,24 @@ class Server(ABC):
         for campo in self.config:
             for attuatore in campo["attuatori"]:
                 self.address[attuatore["ip"]]=campo["name"]
+    
+    def loadCred(self):
+        '''
+            Carica la struttura dati address con valori {psk:b"psk",client:"client"}]
+        '''
+        
+        for campo in self.config:
+            for sensore in campo["sensori"]:
+                record={}
+                record["psk"]=sensore["psk"].encode()
+                record["client_identity"]=sensore["name"].encode()
+                #record={"psk": sensore["psk"].encode(),"client_name": sensore["name"].encode()}
+                self.credentials.append(record)
+        for campo in self.config:
+            for attuatore in campo["attuatori"]:
+                pass
+        print(self.credentials)
+    
 
     def initConfig(self):
         '''
@@ -126,6 +144,13 @@ class Server(ABC):
             logging.error(err)
             logging.error("Loading sensors and/or actuators failed")
             exit()
+        if g.DTLS:
+            try:
+                self.loadCred()
+            except Exception as err:
+                print(err)
+                logging.error("Impossibile caricare cred")
+                exit()
 
     def getBehave(self,address):
         '''

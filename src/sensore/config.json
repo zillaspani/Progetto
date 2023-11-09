@@ -1,5 +1,7 @@
 {
-    "uri":"127.0.0.1",
+    "name":"sensore1",
+    "address":"127.0.0.1",
+    "psk":"CAMBIAMI",
     "behav": "loop",
     "t_unit":2,
     "t_interval":1,

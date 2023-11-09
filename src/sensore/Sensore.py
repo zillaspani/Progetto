@@ -5,7 +5,7 @@ class Sensore:
     def __init__(self):
         self.initConfig()
         logging.basicConfig(level=logging.INFO)
-        logging.getLogger("coap-sensor").setLevel(logging.DEBUG)
+        logging.getLogger("coap").setLevel(logging.DEBUG)
     
 
     def initConfig(self):
@@ -23,7 +23,9 @@ class Sensore:
             exit("Error opening JSON")    
         
         try:
-            self.server_uri="coap://"+config['uri']+"/"
+            self.name=config['name']
+            self.address=config['address']
+            self.server_uri="coap://"+self.address+"/"
             self.mode=config['behav']
             self.time_unit=config['t_unit']
             self.time_interval=config['t_interval']
@@ -37,6 +39,10 @@ class Sensore:
             logging.error(err)
             logging.error("Loading behavior failed")
             exit()
+        try:
+                self.PSK=config['psk']
+        except:
+            logging.info("Non è presente il campo PSK, DTLS non disponibile.")
 
     def get_field_value(self):
         humidity=random.uniform(self.humi_lower_bound,self.humi_upper_bound)

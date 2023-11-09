@@ -10,36 +10,38 @@ import signal
 
 def close(signum, frame):
     
-    handlers = logging.handlers[:]
+    handlers = logging._handlers
     for handler in handlers:
         logging.removeHandler(handler)
         handler.close()
         logging.shutdown()
-        exit()
+    exit()
+    
+
     
 async def main():
     try:
         s=Server()
         root = aiocoap.resource.Site()
-        root.add_resource(('data',), DataResource(s))
+        root.add_resource(['data'], DataResource(s))
         root.add_resource(('receive',), ReceiveState(s))
         
         ##ROBA DTLS
-        server_cr={'coap://127.0.0.1/time': {'dtls': {'psk': b'secretPSK','client-identity': b'client_Identity',}}}
+       
         
         logging.info(f"Resource tree OK")
         dtls_server=await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT],transports=['tinydtls_server'])
         logging.info(f"Avvio server aiocoap su %s e porta %s",g.IP, g.PORT)
-        dtls_server.server_credentials.load_from_dict(server_cr)
-        ##
-        await asyncio.get_running_loop().create_future()
+        for cred in s.credentials:
+            server_cr={'coaps://'+g.IP+'/*': {'dtls': cred}}
+            dtls_server.server_credentials.load_from_dict(server_cr)
         
-    
+        ##
     except Exception as ex:
         logging.error(ex)
         logging.error("Server cannot be instantiated")
         exit()
-
+    await asyncio.get_running_loop().create_future()
 class DataResource(resource.Resource):      
     '''
     Riceve una get dal sensore e restituisce una:
@@ -53,21 +55,23 @@ class DataResource(resource.Resource):
         '''
         get request handling from sensors
         '''
+       
         try:
             logging.debug(request.payload.decode()) 
             request_json=json.loads(request.payload.decode())
+            #print(request.payload.decode())
             if not self.server.checkData(request_json):#:)
                 logging.warning("Values not good")
                 raise Exception("Bad values")
-            logging.debug("PINO")
+            
             logging.debug(request_json)
             self.server.addData(request)
-            return aiocoap.Message(code=aiocoap.CHANGED)
+            return aiocoap.Message(code=aiocoap.CHANGED)  
         except ValueError:
             logging.error("Exception in DataResource "+ValueError)
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)            
-        
-
+        except Exception as e:
+            pass 
 class ReceiveState(resource.Resource):
     '''
     Riceve una get dall'attuatore e restituisce una:
