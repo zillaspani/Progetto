@@ -40,22 +40,22 @@
         {
           "name": "sensore0",
           "ip": "192.168.1.1",
-          "psk": "CAMBIAMI"
+          "psk": "CAMBIAMI0"
         },
         {
           "name": "sensore1",
           "ip": "192.168.1.2",
-          "psk": "CAMBIAMI"
+          "psk": "CAMBIAMI1"
         }
       ],
       "attuatori": [
         {
-          "name": "attuatore0",
+          "name": "attuatore1",
           "ip": "192.168.1.3",
           "psk": "CAMBIAMI"
         },
         {
-          "name": "attuatore1",
+          "name": "attuatore2",
           "ip": "192.168.1.4",
           "psk": "CAMBIAMI"
         }
@@ -99,24 +99,24 @@
       },
       "sensori": [
         {
-          "name": "sensore0",
+          "name": "sensore4",
           "ip": "192.168.1.6",
           "psk": "CAMBIAMI"
         },
         {
-          "name": "sensore1",
+          "name": "sensore5",
           "ip": "192.168.1.7",
           "psk": "CAMBIAMI"
         }
       ],
       "attuatori": [
         {
-          "name": "attuatore0",
+          "name": "attuatore5",
           "ip": "192.168.1.8",
           "psk": "CAMBIAMI"
         },
         {
-          "name": "attuatore1",
+          "name": "attuatore6",
           "ip": "192.168.1.9",
           "psk": "CAMBIAMI"
         }

@@ -1,5 +1,5 @@
 {   
-    "name":"attuatore",
+    "name":"attuatore2",
     "address":"127.0.0.1",
     "behav": "loop",
     "t_unit":2,
