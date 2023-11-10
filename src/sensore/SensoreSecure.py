@@ -1,4 +1,4 @@
-from base64 import b64encode
+from base64 import b64decode, b64encode
 import os
 import time
 import psutil
@@ -12,6 +12,9 @@ from Sensore import Sensore
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
 from Crypto.Util.Padding import pad, unpad
+from Crypto.PublicKey import RSA
+from Crypto.Random import get_random_bytes
+from Crypto.Cipher import AES, PKCS1_OAEP
 
 class SensoreSecure(Sensore):
     '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
@@ -61,11 +64,47 @@ class SensoreSecure(Sensore):
         '''
         hello_str= json.dumps({'type':'sensori', 'id':'sensore'+ str(self.id_client)})
         payload=json.dumps(hello_str).encode("utf-8") #byte
-        response=await self.send_get_request(endpoint,payload=payload)
-        print (json.loads(response.payload.decode()))
+        response_hello=await self.send_get_request(endpoint,payload=payload)
         
+        #il client ha ricevuto un messaggio dal server contenente la challenge
+        response_string=json.loads(response_hello.payload.decode())
+        response_json=json.loads(response_string)
+        #assegnamo i campi che risulteranno stringhe
+        enc_session_key=response_json["enc_session_key"]
+        tag =response_json["tag"]
+        ciphertext=response_json["ciphertext"]
+        nonce=response_json["nonce"]
+        private_key = RSA.import_key(open("./src/sensore/private_sensore.pem").read())
+        enc_session_key_bytes=b64decode(enc_session_key)
+        tag_bytes = b64decode(tag)
+        ct_bytes = b64decode(ciphertext)
+        nonce_bytes=b64decode(nonce.encode())
+        # Decrypt the session key with the private RSA key
+        cipher_rsa = PKCS1_OAEP.new(private_key)
+        session_key = cipher_rsa.decrypt(enc_session_key_bytes)
+        # Decrypt the data with the AES session key
+        cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce_bytes)
+        secret_byte = cipher_aes.decrypt_and_verify(ct_bytes, tag_bytes)
         
-              
+        #ora si cifra con la chiave pubblica del server e si manda la risposta
+        psk=RSA.import_key(open("./src/sensore/public_server.pem").read())
+        session_key = get_random_bytes(16)
+        cipher_rsa = PKCS1_OAEP.new(psk)
+        enc_session_key_bytes = cipher_rsa.encrypt(session_key)
+         # Encrypt the data with the AES session key
+        cipher_aes = AES.new(session_key, AES.MODE_EAX)
+        ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret_byte)
+        tag = b64encode(tag_bytes).decode('utf-8')
+        ct = b64encode(ciphertext_bytes).decode('utf-8')
+        enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
+        payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
+        payload=json.dumps(payload_string).encode("utf-8")
+        
+        response_challenge=await self.send_post_request(endpoint,payload=payload)
+        #TO DO 
+        '''
+        il server deve mandare sia la chiave del tag che del mac?
+        '''
     
     
     async def send_get_request(self, endpoint,payload):
@@ -96,6 +135,30 @@ class SensoreSecure(Sensore):
             logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
             return None
     
+    async def send_post_request(self, endpoint,payload):
+        '''
+        Metodo che invia ad un endpoint una post e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
+        '''
+        try:
+            protocol = await aiocoap.Context.create_client_context()
+            request = Message(code=aiocoap.POST, uri=endpoint, payload=payload)
+            logging.info(Fore.GREEN+"Richiesta inviata")
+
+            response = await protocol.request(request).response
+            print(response)
+        except aiocoap.error.RequestTimedOut:
+            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            return None
+        if response.code.is_successful():
+            try:
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                return response
+            except ValueError:
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                return None
+        else:
+            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            return None 
     
     async def data_request(self):
         data=self.get_field_value()

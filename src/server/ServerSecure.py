@@ -201,9 +201,13 @@ class Heartbit(resource.Resource):
 
 class Authentication(resource.Resource):
     s=None
+    key_session=None
+   
     def __init__(self,s):
         super().__init__()
         self.s=s
+        key_session=None
+        
     
     async def render_get(self, request):
         try:
@@ -225,22 +229,52 @@ class Authentication(resource.Resource):
             session_key = get_random_bytes(16)
             cipher_rsa = PKCS1_OAEP.new(pck)
             enc_session_key_bytes = cipher_rsa.encrypt(session_key)
-            secret=str(random.randint(1000000000000000000000000000000000, 1000000000000000000000000000000000000000000000000000)).encode("utf-8") #numero molto grande
+            self.key_session=str(random.randint(1000000000000000000000000000000000, 1000000000000000000000000000000000000000000000000000))
+            secret=self.key_session.encode("utf-8") #numero molto grande
             # Encrypt the data with the AES session key
             cipher_aes = AES.new(session_key, AES.MODE_EAX)
             ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret)
             tag = b64encode(tag_bytes).decode('utf-8')
             ct = b64encode(ciphertext_bytes).decode('utf-8')
             enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
-            payload_string= json.dumps({'enc_session_key':str(enc_session_key), 'tag':tag, 'ciphertext':ct, 'nonce':str(cipher_aes.nonce)})
-            print(payload_string)
+            payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
             payload=json.dumps(payload_string).encode("utf-8")
+            logging.info("Challenge inviata correttamente")
             return aiocoap.Message(payload=payload)
+            
         except Exception as Ex:
             logging.error("Exception in DataResource "+ str(Ex))
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
         
-        
+    async def render_post(self, request):
+        try:
+            request_string=json.loads(request.payload.decode())
+            request_json=json.loads(request_string)
+            #assegnamo i campi che risulteranno stringhe
+            enc_session_key=request_json["enc_session_key"]
+            tag =request_json["tag"]
+            ciphertext=request_json["ciphertext"]
+            nonce=request_json["nonce"]
+            private_key = RSA.import_key(open("./src/server/private_server.pem").read())
+            enc_session_key_bytes=b64decode(enc_session_key)
+            tag_bytes = b64decode(tag)
+            ct_bytes = b64decode(ciphertext)
+            nonce_bytes=b64decode(nonce.encode())
+            # Decrypt the session key with the private RSA key
+            cipher_rsa = PKCS1_OAEP.new(private_key)
+            session_key = cipher_rsa.decrypt(enc_session_key_bytes)
+            # Decrypt the data with the AES session key
+            cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce_bytes)
+            secret_byte = cipher_aes.decrypt_and_verify(ct_bytes, tag_bytes)
+            secret=secret_byte.decode("utf-8")
+            if secret!=self.key_session:
+                raise Exception("The challenge was unsuccessful")
+            #se sono uguali bisogna mandargli una chiave segreta per aes e mac cifrata con la chiave pubblica del client
+            print("TUTTO OK FINO AD ADESSO SBORROOOOOOOO")
+            return 
+        except Exception as Ex:
+            logging.error("Exception in DataResource "+ str(Ex))
+            return aiocoap.Message(code=aiocoap.BAD_REQUEST)
 
         
 
