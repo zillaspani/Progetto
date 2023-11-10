@@ -1,6 +1,7 @@
 import asyncio
 from base64 import b64decode, b64encode
 import logging
+import os
 import random
 import globalConstants as g
 from server import Server
@@ -16,6 +17,13 @@ from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 
+'''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
+aes_key_sensore= b''
+hmac_key_sensore= b''
+aes_key_attuatore=b''
+hmac_key_attuatore=b''
+
+    
 def close(signum, frame):
     handlers = logging.handlers[:]
     for handler in handlers:
@@ -44,15 +52,8 @@ async def main():
         logging.error("Server cannot be instantiated")
         exit()
         
-'''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
-aes_key_sensore= b'8\x14>V\xb3\xbc`\xa4\xd1\x18\xb4}\xf2\x89\xbf\xd7'
-hmac_key_sensore= b'Vlx\x1a(\x8b\xe5\xac@\xce \xff\xeb^\xd9\x19\xef\xc6\x98\x82\xa3\x9a\x89\xc09{\xe0\xfbB\x1a\xac\x0b'
 
-aes_key_attuatore=b'u\xa3\\\x96\x08\x8e\xd3jc\x0f\xdbq3\xc4\x1d\xde'
-hmac_key_attuatore=b'\xcbV\xfdU\xf5\xcf\xcb\xcczI\xa6p\xaf\xe8=\x18\x18\x17`\xe4\xb0\xaf$a\x0c/\xc8\xach\xda\x92\xc2'
 
-public_sensor_key=''
-public_actuator_key=''
 
 def encrypt_aes_easy(data, key):
         cipher=AES.new(key,AES.MODE_ECB)
@@ -130,6 +131,7 @@ def tag_hmac_sha256(data, key):
 
 ''''''
 
+        
 class DataResource(resource.Resource):      
     '''
     Riceve una get dal sensore e restituisce una:
@@ -138,13 +140,25 @@ class DataResource(resource.Resource):
     server=None
     def __init__(self,s):
         super().__init__()
-        self.server=s    
+        self.server=s  
+
+    def get_aes_key_sensore(self):
+        global aes_key_sensore
+        return aes_key_sensore
+    def get_hmac_key_sensore(self):
+        global hmac_key_sensore
+        return hmac_key_sensore
+    
         
     async def render_get(self, request):
         '''
         get request handling from sensors
         '''
         try: 
+            '''prendiamo le chiavi scambiate'''
+            aes_key=self.get_aes_key_sensore()
+            hmac_key=self.get_hmac_key_sensore()
+            
             '''
             aggiunta crittografia
             '''
@@ -160,9 +174,9 @@ class DataResource(resource.Resource):
             '''
             request_json=json.loads(request_string)
             ''''''
-            check_payload(request_json['ciphertext'], request_json['tag'], hmac_key_sensore) #OK
+            check_payload(request_json['ciphertext'], request_json['tag'], hmac_key) #OK
             #request_json['ciphertext'] è una stringa
-            plaintext=decrypt_aes(request_json['iv'],request_json['ciphertext'], aes_key_sensore)
+            plaintext=decrypt_aes(request_json['iv'],request_json['ciphertext'], aes_key)
             request_json=json.loads(plaintext)
             print(request_json)
             if not self.server.checkData(request_json):#:)
@@ -201,13 +215,24 @@ class Heartbit(resource.Resource):
 
 class Authentication(resource.Resource):
     s=None
-    key_session=None
-   
+    id_client=0    
     def __init__(self,s):
         super().__init__()
         self.s=s
-        key_session=None
+        self.id_client
+   
+    def set_sensore(self, aes, hmac):
+        global aes_key_sensore
+        global hmac_key_sensore
+        aes_key_sensore= aes
+        hmac_key_sensore=hmac
         
+    def set_attuatore(self, aes, hmac):
+        global aes_key_attuatore
+        global hmac_key_attuatore
+        aes_key_attuatore= aes
+        hmac_key_attuatore=hmac
+    
     
     async def render_get(self, request):
         try:
@@ -220,8 +245,10 @@ class Authentication(resource.Resource):
             sarà qualcosa che si prende la chiave pubblica in questo caso la prende in maniera hardcodatissima
             '''
             if request_json['type']=='sensori':
+                self.id_client=1
                 pck=RSA.import_key(open("./src/server/public_sensore.pem").read())
             elif request_json['type']=='attuatori':
+                self.id_client=2
                 pck=RSA.import_key(open("./src/server/public_attuatore.pem").read())
             else:
                 raise Exception("Type not defined")
@@ -270,8 +297,36 @@ class Authentication(resource.Resource):
             if secret!=self.key_session:
                 raise Exception("The challenge was unsuccessful")
             #se sono uguali bisogna mandargli una chiave segreta per aes e mac cifrata con la chiave pubblica del client
-            print("TUTTO OK FINO")
-            return 
+            key_aes=os.urandom(16)
+            key_hmac=os.urandom(32)
+            if self.id_client==1:
+                self.set_sensore(key_aes,key_hmac)
+            else:
+                self.set_attuatore(key_aes,key_hmac)
+            '''queste due chiavi ora devono essere mandate al client'''
+            if self.id_client==1:
+                pck=RSA.import_key(open("./src/server/public_sensore.pem").read())
+            else:
+                pck=RSA.import_key(open("./src/server/public_attuatore.pem").read())
+            key_aes_string= b64encode(key_aes).decode('utf-8')
+            key_hmac_string = b64encode(key_hmac).decode('utf-8')
+            keys_ciphertext_string= json.dumps({'aes':key_aes_string, 'hmac':key_hmac_string})
+            secret=keys_ciphertext_string.encode("utf-8") 
+            session_key = get_random_bytes(16)
+            cipher_rsa = PKCS1_OAEP.new(pck)
+            enc_session_key_bytes = cipher_rsa.encrypt(session_key)
+            # Encrypt the data with the AES session key
+            cipher_aes = AES.new(session_key, AES.MODE_EAX)
+            ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret)
+            tag = b64encode(tag_bytes).decode('utf-8')
+            ct = b64encode(ciphertext_bytes).decode('utf-8')
+            enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
+            payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
+            payload=json.dumps(payload_string).encode("utf-8")
+            logging.info("Autenticazione riuscita, chiavi inviate correttamente")
+            return aiocoap.Message(payload=payload)
+            
+            
         except Exception as Ex:
             logging.error("Exception in DataResource "+ str(Ex))
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)

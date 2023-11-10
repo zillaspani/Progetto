@@ -18,12 +18,10 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 
 class SensoreSecure(Sensore):
     '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
-    aes_key= b'8\x14>V\xb3\xbc`\xa4\xd1\x18\xb4}\xf2\x89\xbf\xd7'
-    hmac_key= b'Vlx\x1a(\x8b\xe5\xac@\xce \xff\xeb^\xd9\x19\xef\xc6\x98\x82\xa3\x9a\x89\xc09{\xe0\xfbB\x1a\xac\x0b'
-    
-    private_client_key=''
-    public_server_key=''
+    aes_key= b''
+    hmac_key= b''
     id_client=0
+    
     
     def encrypt_aes_easy(self, data, key):
         cipher=AES.new(key,AES.MODE_ECB)
@@ -101,12 +99,29 @@ class SensoreSecure(Sensore):
         payload=json.dumps(payload_string).encode("utf-8")
         
         response_challenge=await self.send_post_request(endpoint,payload=payload)
-        #TO DO 
-        '''
-        il server deve mandare sia la chiave del tag che del mac?
-        '''
-    
-    
+        #il client ha ricevuto le chiavi e se le prende
+        response_string=json.loads(response_challenge.payload.decode())
+        response_json=json.loads(response_string)
+        #assegnamo i campi che risulteranno stringhe
+        enc_session_key=response_json["enc_session_key"]
+        tag =response_json["tag"]
+        ciphertext=response_json["ciphertext"]
+        nonce=response_json["nonce"]
+        private_key = RSA.import_key(open("./src/sensore/private_sensore.pem").read())
+        enc_session_key_bytes=b64decode(enc_session_key)
+        tag_bytes = b64decode(tag)
+        ct_bytes = b64decode(ciphertext)
+        nonce_bytes=b64decode(nonce.encode())
+        # Decrypt the session key with the private RSA key
+        cipher_rsa = PKCS1_OAEP.new(private_key)
+        session_key = cipher_rsa.decrypt(enc_session_key_bytes)
+        # Decrypt the data with the AES session key
+        cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce_bytes)
+        secret_byte = cipher_aes.decrypt_and_verify(ct_bytes, tag_bytes)
+        secret_json=json.loads(secret_byte.decode())
+        self.aes_key= b64decode(secret_json["aes"])
+        self.hmac_key=b64decode(secret_json["hmac"])
+        print("Autenticazione riuscita, chiavi correttamente memorizzate")
     async def send_get_request(self, endpoint,payload):
         '''
         Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
