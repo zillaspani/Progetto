@@ -30,14 +30,8 @@ async def main():
         logging.info(f"Resource tree OK")
         dtls_server=await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT],transports=['tinydtls_server'])
         logging.info(f"Avvio server aiocoap su %s e porta %s",g.IP, g.PORT)
-        #for cred in s.credentials:
-        #    server_cr={'coaps://'+g.IP+'/*': {'dtls': cred}}
-        #    dtls_server.server_credentials.load_from_dict(server_cr)
-        list=[]
-        list={'coaps://'+g.IP+'/data': {'dtls':s.credentials[0]},'coaps://'+g.IP+'/data':{'dtls': s.credentials[0]}}
-        #dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/data': {'dtls': s.credentials}})
-        dtls_server.server_credentials.load_from_dict(list)
-        #dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/receive': {'dtls': s.credentials[4]}})
+        dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/data': {'dtls':  {"psk": b"cambiami","client_identity":b"sensore" }}})
+        dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/receive': {'dtls': {"psk": b"cambiami","client_identity":b"attuatore" }}})
         logging.info(f"Credenziali caricaricate")
     except Exception as ex:
         logging.exception(ex)
@@ -89,14 +83,15 @@ class ReceiveState(resource.Resource):
         get request handling from actuators
         '''
         try:
-            ip="192.168.1.3" #PIROXXXXXXX OCCCCCCHIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-            #ip=request.remote.ip
-            #print(request.payload.decode())   
+            ip="192.168.1.3"
+            if not g.TESTING:
+                ip=request.remote.ip
+               
             comportamento=self.s.getBehave(ip)
             state={'state':comportamento}
             return aiocoap.Message(payload=json.dumps(state).encode("utf-8"))
-        except ValueError:
-            logging.info("ReceiveState Handling failed")
+        except Exception as e:
+            logging.error("ReceiveState Handling failed")
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
       
 

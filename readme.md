@@ -17,4 +17,6 @@ Per operare su questa versione fai una branch e successivamente una PULL REQUEST
 - Inserita classe astratta per Sensori ed attuatori.
 - eliminato Campo.py
 
+### 1.1.3 
+Aggiunta sicurezza.
 

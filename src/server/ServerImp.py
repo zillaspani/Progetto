@@ -23,16 +23,17 @@ async def main():
         root.add_resource(('data',), DataResource(s))
         root.add_resource(('receive',), ReceiveState(s))
         root.add_resource(('heartbit',), Heartbit(s))
-        root.add_resource(('dummy',), DummyResource(s))
         logging.info(f"Resource tree OK")
+        
         await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT])
         logging.info(f"Avvio server aiocoap su %s e porta %s",g.IP, g.PORT)
+        
         await asyncio.get_running_loop().create_future()
         
     
     except Exception as ex:
-        logging.error(ex)
         logging.error("Server cannot be instantiated")
+        logging.exception(ex)
         exit()
 
 class DataResource(resource.Resource):      
@@ -56,9 +57,12 @@ class DataResource(resource.Resource):
             
             self.server.addData(request)
             return aiocoap.Message(code=aiocoap.CHANGED)
-        except ValueError:
-            logging.error("Exception in DataResource "+ValueError)
+        except ValueError as ve:
+            logging.error("Exception in DataResource")
+            logging.exception(ve)
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
+        except Exception as e:
+            logging.exception(e)
 
 class Heartbit(resource.Resource):
     def __init__(self,s):
@@ -78,7 +82,7 @@ class Heartbit(resource.Resource):
             return aiocoap.Message(code=aiocoap.CHANGED)
 
         except Exception:
-            logging.info("HealtRequest Handling failed")
+            logging.error("HealtRequest Handling failed")
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
             
         
@@ -98,14 +102,15 @@ class ReceiveState(resource.Resource):
         get request handling from actuators
         '''
         try:
-            ip="192.168.1.3" #PIROXXXXXXX OCCCCCCHIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-            #ip=request.remote.ip
+            ip="192.168.1.3"
+            if not g.TESTING:
+                ip=request.remote.ip
             #print(request.payload.decode())   
             comportamento=self.s.getBehave(ip)
             state={'state':comportamento}
             return aiocoap.Message(payload=json.dumps(state).encode("utf-8"))
         except ValueError:
-            logging.info("ReceiveState Handling failed")
+            logging.error("ReceiveState Handling failed")
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
     
 
@@ -128,19 +133,6 @@ TO DO: Capire come gestire le politiche di istradamento e federazione
 '''
 Console carina e coccolosa per le informazioni
 '''
-
-
-class DummyResource():
-    def __init__(self,s) -> None:
-        pass
-    async def render_get(self, request):
-        logging.info("Qui arriva")
-        text = ["Request came from %s." % request.remote.hostinfo]
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        text.append("The server address used %s." % request.remote.hostinfo_local)
-
-        return aiocoap.Message(content_format=0, payload="CCC\n".join(text).encode('utf8'))
-
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, close)

@@ -157,7 +157,7 @@ class Server():
                 logging.error("Impossibile caricare cred")
                 exit()
 
-    def getBehave(self,address):
+    def getBehave(self,address): #TODO Generalizzare
         '''
             Dato l'ip dell'attuatore restituisce il suo comportamento.
             Assunzione:
@@ -215,8 +215,9 @@ class Server():
         '''
         try:
             valori=None
-            campo = "campo0" #SOLO IN LOCALE, altrimenti decommenta
-            #campo = self.getCampo(request)
+            campo = "campo0"
+            if g.TESTING:
+                campo = self.getCampo(request)
             request_json=json.loads(request.payload.decode())
             for c in self.config:
                 if c["name"]==campo:
