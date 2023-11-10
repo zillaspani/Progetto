@@ -270,7 +270,7 @@ class Authentication(resource.Resource):
             if secret!=self.key_session:
                 raise Exception("The challenge was unsuccessful")
             #se sono uguali bisogna mandargli una chiave segreta per aes e mac cifrata con la chiave pubblica del client
-            print("TUTTO OK FINO AD ADESSO SBORROOOOOOOO")
+            print("TUTTO OK FINO")
             return 
         except Exception as Ex:
             logging.error("Exception in DataResource "+ str(Ex))
