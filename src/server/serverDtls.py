@@ -30,8 +30,10 @@ async def main():
         logging.info(f"Resource tree OK")
         dtls_server=await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT],transports=['tinydtls_server'])
         logging.info(f"Avvio server aiocoap su %s e porta %s",g.IP, g.PORT)
-        dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/data': {'dtls':  {"psk": b"cambiami","client_identity":b"sensore" }}})
-        dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/receive': {'dtls': {"psk": b"cambiami","client_identity":b"attuatore" }}})
+        #dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/data': {'dtls-client_identity':{"psk": b"CAMBIAMI","client_identity":b"sensore" }}})
+        dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/data': {'dtls':  {"psk": b"CAMBIAMI","client_identity":b"sensore" }}})
+        dtls_server.server_credentials.load_from_dict({'coaps://'+g.IP+'/receive': {'dtls': {"psk": b"CAMBIAMI","client_identity":b"attuatore" }}})
+    
         logging.info(f"Credenziali caricaricate")
     except Exception as ex:
         logging.exception(ex)

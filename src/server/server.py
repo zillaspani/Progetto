@@ -216,7 +216,7 @@ class Server():
         try:
             valori=None
             campo = "campo0"
-            if g.TESTING:
+            if not g.TESTING:
                 campo = self.getCampo(request)
             request_json=json.loads(request.payload.decode())
             for c in self.config:
