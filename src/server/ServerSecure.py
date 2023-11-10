@@ -52,9 +52,6 @@ async def main():
         logging.error("Server cannot be instantiated")
         exit()
         
-
-
-
 def encrypt_aes_easy(data, key):
         cipher=AES.new(key,AES.MODE_ECB)
         ct_bytes = cipher.encrypt(pad(data, AES.block_size))
@@ -117,8 +114,6 @@ def decrypt_aes(iv, ct, key):
     #return plaintext in string, ma con struttura json
     return pt.decode()
     
-
-
 def tag_hmac_sha256(data, key):
         '''
         Semplice metodo per calcolare il tag con HMAC-Sha256, dove data in questo caso è una stringa
@@ -128,8 +123,6 @@ def tag_hmac_sha256(data, key):
         tag=b64encode(h.digest()).decode('utf-8')
         #ritorna un tag a stringa
         return tag 
-
-''''''
 
         
 class DataResource(resource.Resource):      
@@ -233,17 +226,45 @@ class Authentication(resource.Resource):
         aes_key_attuatore= aes
         hmac_key_attuatore=hmac
     
+    def encrypt_with_rsa(self,pck,secret_string):
+        session_key = get_random_bytes(16)
+        cipher_rsa = PKCS1_OAEP.new(pck)
+        enc_session_key_bytes = cipher_rsa.encrypt(session_key)
+        secret=secret_string.encode("utf-8")
+        # Encrypt the data with the AES session key
+        cipher_aes = AES.new(session_key, AES.MODE_EAX)
+        ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret)
+        tag = b64encode(tag_bytes).decode('utf-8')
+        ct = b64encode(ciphertext_bytes).decode('utf-8')
+        enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
+        payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
+        payload=json.dumps(payload_string).encode("utf-8")
+        return payload
+    
+    def private_server_key_decrypt(self, request_string, path_private_key):
+        request_json=json.loads(request_string)
+        #assegnamo i campi che risulteranno stringhe
+        enc_session_key=request_json["enc_session_key"]
+        tag =request_json["tag"]
+        ciphertext=request_json["ciphertext"]
+        nonce=request_json["nonce"]
+        private_key = RSA.import_key(open(path_private_key).read())
+        enc_session_key_bytes=b64decode(enc_session_key)
+        tag_bytes = b64decode(tag)
+        ct_bytes = b64decode(ciphertext)
+        nonce_bytes=b64decode(nonce.encode())
+        # Decrypt the session key with the private RSA key
+        cipher_rsa = PKCS1_OAEP.new(private_key)
+        session_key = cipher_rsa.decrypt(enc_session_key_bytes)
+        # Decrypt the data with the AES session key
+        cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce_bytes)
+        secret_byte = cipher_aes.decrypt_and_verify(ct_bytes, tag_bytes)
+        return secret_byte
     
     async def render_get(self, request):
         try:
             request_string=json.loads(request.payload.decode())
             request_json=json.loads(request_string)
-            '''
-            per la versione definitiva andrà a prendere dalle strutture preconfigurate
-            va aggiustato per capire meglio la configurazione del file json, passato in json a posta per prendersi meglio
-            i valori, in questo caso dato per scontato
-            sarà qualcosa che si prende la chiave pubblica in questo caso la prende in maniera hardcodatissima
-            '''
             if request_json['type']=='sensori':
                 self.id_client=1
                 pck=RSA.import_key(open("./src/server/public_sensore.pem").read())
@@ -253,22 +274,10 @@ class Authentication(resource.Resource):
             else:
                 raise Exception("Type not defined")
             # Encrypt the session key with the public RSA key
-            session_key = get_random_bytes(16)
-            cipher_rsa = PKCS1_OAEP.new(pck)
-            enc_session_key_bytes = cipher_rsa.encrypt(session_key)
             self.key_session=str(random.randint(1000000000000000000000000000000000, 1000000000000000000000000000000000000000000000000000))
-            secret=self.key_session.encode("utf-8") #numero molto grande
-            # Encrypt the data with the AES session key
-            cipher_aes = AES.new(session_key, AES.MODE_EAX)
-            ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret)
-            tag = b64encode(tag_bytes).decode('utf-8')
-            ct = b64encode(ciphertext_bytes).decode('utf-8')
-            enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
-            payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
-            payload=json.dumps(payload_string).encode("utf-8")
+            payload=self.encrypt_with_rsa(pck,self.key_session)
             logging.info("Challenge inviata correttamente")
-            return aiocoap.Message(payload=payload)
-            
+            return aiocoap.Message(payload=payload)   
         except Exception as Ex:
             logging.error("Exception in DataResource "+ str(Ex))
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
@@ -276,23 +285,7 @@ class Authentication(resource.Resource):
     async def render_post(self, request):
         try:
             request_string=json.loads(request.payload.decode())
-            request_json=json.loads(request_string)
-            #assegnamo i campi che risulteranno stringhe
-            enc_session_key=request_json["enc_session_key"]
-            tag =request_json["tag"]
-            ciphertext=request_json["ciphertext"]
-            nonce=request_json["nonce"]
-            private_key = RSA.import_key(open("./src/server/private_server.pem").read())
-            enc_session_key_bytes=b64decode(enc_session_key)
-            tag_bytes = b64decode(tag)
-            ct_bytes = b64decode(ciphertext)
-            nonce_bytes=b64decode(nonce.encode())
-            # Decrypt the session key with the private RSA key
-            cipher_rsa = PKCS1_OAEP.new(private_key)
-            session_key = cipher_rsa.decrypt(enc_session_key_bytes)
-            # Decrypt the data with the AES session key
-            cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce_bytes)
-            secret_byte = cipher_aes.decrypt_and_verify(ct_bytes, tag_bytes)
+            secret_byte=self.private_server_key_decrypt(request_string,"./src/server/private_server.pem")
             secret=secret_byte.decode("utf-8")
             if secret!=self.key_session:
                 raise Exception("The challenge was unsuccessful")
@@ -311,22 +304,9 @@ class Authentication(resource.Resource):
             key_aes_string= b64encode(key_aes).decode('utf-8')
             key_hmac_string = b64encode(key_hmac).decode('utf-8')
             keys_ciphertext_string= json.dumps({'aes':key_aes_string, 'hmac':key_hmac_string})
-            secret=keys_ciphertext_string.encode("utf-8") 
-            session_key = get_random_bytes(16)
-            cipher_rsa = PKCS1_OAEP.new(pck)
-            enc_session_key_bytes = cipher_rsa.encrypt(session_key)
-            # Encrypt the data with the AES session key
-            cipher_aes = AES.new(session_key, AES.MODE_EAX)
-            ciphertext_bytes, tag_bytes = cipher_aes.encrypt_and_digest(secret)
-            tag = b64encode(tag_bytes).decode('utf-8')
-            ct = b64encode(ciphertext_bytes).decode('utf-8')
-            enc_session_key = b64encode(enc_session_key_bytes).decode('utf-8')
-            payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
-            payload=json.dumps(payload_string).encode("utf-8")
+            payload=self.encrypt_with_rsa(pck, keys_ciphertext_string)
             logging.info("Autenticazione riuscita, chiavi inviate correttamente")
-            return aiocoap.Message(payload=payload)
-            
-            
+            return aiocoap.Message(payload=payload) 
         except Exception as Ex:
             logging.error("Exception in DataResource "+ str(Ex))
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
