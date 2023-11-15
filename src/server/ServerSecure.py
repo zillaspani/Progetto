@@ -18,12 +18,9 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 
 '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
-aes_key_sensore= b''
-hmac_key_sensore= b''
-aes_key_attuatore=b''
-hmac_key_attuatore=b''
+keys={}
 
-    
+
 def close(signum, frame):
     handlers = logging.handlers[:]
     for handler in handlers:
@@ -70,11 +67,11 @@ def encrypt_aes(data, key):
         '''ritorna una stringa'''
         return result
     
-def cript_dictionary_to_payload(dictionary,key):
+def cript_dictionary_to_payload(dictionary,key_aes,key_hmac):
     '''metodo che prende in input un dictionary e restituisce lo stesso cifrato in bytes, facendo uso di encrypt_aes'''
-    cript_in_string=encrypt_aes(json.dumps(dictionary).encode("utf-8"),key)
+    cript_in_string=encrypt_aes(json.dumps(dictionary).encode("utf-8"),key_aes)
     cript_in_json=json.loads(cript_in_string)
-    tag= tag_hmac_sha256(cript_in_json['ciphertext'], hmac_key_attuatore)
+    tag= tag_hmac_sha256(cript_in_json['ciphertext'], key_hmac)
     result=json.dumps({'iv':cript_in_json['iv'], 'ciphertext':cript_in_json['ciphertext'], 'tag':tag})
     #AGGIUNTA QUI
     '''
@@ -124,7 +121,13 @@ def tag_hmac_sha256(data, key):
         #ritorna un tag a stringa
         return tag 
 
+def get_aes(ip):
+    return keys[ip]["aes_key"]
         
+        
+def get_hmac(ip):
+    return keys[ip]["hmac_key"]
+     
 class DataResource(resource.Resource):      
     '''
     Riceve una get dal sensore e restituisce una:
@@ -134,23 +137,16 @@ class DataResource(resource.Resource):
     def __init__(self,s):
         super().__init__()
         self.server=s  
-
-    def get_aes_key_sensore(self):
-        global aes_key_sensore
-        return aes_key_sensore
-    def get_hmac_key_sensore(self):
-        global hmac_key_sensore
-        return hmac_key_sensore
-    
-        
+     
     async def render_get(self, request):
         '''
         get request handling from sensors
         '''
         try: 
+            ip=self.server.address_parser(request.remote.hostinfo)['address']
             '''prendiamo le chiavi scambiate'''
-            aes_key=self.get_aes_key_sensore()
-            hmac_key=self.get_hmac_key_sensore()
+            aes_key=get_aes(ip)
+            hmac_key=get_hmac(ip)
             
             '''
             aggiunta crittografia
@@ -207,25 +203,15 @@ class Heartbit(resource.Resource):
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
 
 class Authentication(resource.Resource):
-    s=None
-    id_client=0    
+    server=None   
     def __init__(self,s):
         super().__init__()
-        self.s=s
-        self.id_client
+        self.server=s
    
-    def set_sensore(self, aes, hmac):
-        global aes_key_sensore
-        global hmac_key_sensore
-        aes_key_sensore= aes
-        hmac_key_sensore=hmac
-        
-    def set_attuatore(self, aes, hmac):
-        global aes_key_attuatore
-        global hmac_key_attuatore
-        aes_key_attuatore= aes
-        hmac_key_attuatore=hmac
-    
+    def add_keys(self,ip, aes, hmac):
+        keys[ip]={'aes_key': aes, 'hmac_key':hmac}
+            
+            
     def encrypt_with_rsa(self,pck,secret_string):
         session_key = get_random_bytes(16)
         cipher_rsa = PKCS1_OAEP.new(pck)
@@ -261,46 +247,46 @@ class Authentication(resource.Resource):
         secret_byte = cipher_aes.decrypt_and_verify(ct_bytes, tag_bytes)
         return secret_byte
     
+    def open_public_client_key(self, request):
+        tipo=self.server.getTipo(request)
+        if tipo=='sensors':
+            return RSA.import_key(open("./src/server/keys/public_sensore.pem").read())
+        elif tipo=='actuators':
+            return RSA.import_key(open("./src/server/keys/public_attuatore.pem").read())
+            
     async def render_get(self, request):
         try:
             request_string=json.loads(request.payload.decode())
             request_json=json.loads(request_string)
-            if request_json['type']=='sensori':
-                self.id_client=1
-                pck=RSA.import_key(open("./src/server/public_sensore.pem").read())
-            elif request_json['type']=='attuatori':
-                self.id_client=2
-                pck=RSA.import_key(open("./src/server/public_attuatore.pem").read())
-            else:
+            if self.server.getTipo(request)!=request_json["type"]:
+                print(self.server.getTipo(request))
+                print(request_json["type"])
                 raise Exception("Type not defined")
-            # Encrypt the session key with the public RSA key
-            self.key_session=str(random.randint(1000000000000000000000000000000000, 1000000000000000000000000000000000000000000000000000))
-            payload=self.encrypt_with_rsa(pck,self.key_session)
+            pck=self.open_public_client_key(request)
+
+           # Encrypt the session key with the public RSA key
+            self.challenge=str(random.randint(g.INT_LOWER,g.INT_GREATER))
+            payload=self.encrypt_with_rsa(pck,self.challenge)
             logging.info("Challenge inviata correttamente")
             return aiocoap.Message(payload=payload)   
         except Exception as Ex:
-            logging.error("Exception in DataResource "+ str(Ex))
+            logging.error("Exception in AuthenticationGet "+ str(Ex))
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
         
     async def render_post(self, request):
         try:
+            pck=self.open_public_client_key(request)
             request_string=json.loads(request.payload.decode())
-            secret_byte=self.private_server_key_decrypt(request_string,"./src/server/private_server.pem")
+            secret_byte=self.private_server_key_decrypt(request_string,"./src/server/keys/private_server.pem")
             secret=secret_byte.decode("utf-8")
-            if secret!=self.key_session:
+            if secret!=self.challenge:
                 raise Exception("The challenge was unsuccessful")
             #se sono uguali bisogna mandargli una chiave segreta per aes e mac cifrata con la chiave pubblica del client
             key_aes=os.urandom(16)
             key_hmac=os.urandom(32)
-            if self.id_client==1:
-                self.set_sensore(key_aes,key_hmac)
-            else:
-                self.set_attuatore(key_aes,key_hmac)
+            ip=self.server.address_parser(request.remote.hostinfo)['address']
+            self.add_keys(ip,key_aes,key_hmac)
             '''queste due chiavi ora devono essere mandate al client'''
-            if self.id_client==1:
-                pck=RSA.import_key(open("./src/server/public_sensore.pem").read())
-            else:
-                pck=RSA.import_key(open("./src/server/public_attuatore.pem").read())
             key_aes_string= b64encode(key_aes).decode('utf-8')
             key_hmac_string = b64encode(key_hmac).decode('utf-8')
             keys_ciphertext_string= json.dumps({'aes':key_aes_string, 'hmac':key_hmac_string})
@@ -308,7 +294,7 @@ class Authentication(resource.Resource):
             logging.info("Autenticazione riuscita, chiavi inviate correttamente")
             return aiocoap.Message(payload=payload) 
         except Exception as Ex:
-            logging.error("Exception in DataResource "+ str(Ex))
+            logging.error("Exception in AuthenticationPost "+ str(Ex))
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
 
         
@@ -319,10 +305,10 @@ class ReceiveState(resource.Resource):
     risposta con codice 2.05
     Attuatore deve inviare un messaggio confermabile
     '''
-    s=None
+    server=None
     def __init__(self,s):
         super().__init__()
-        self.s=s
+        self.server=s
         
     
     
@@ -331,10 +317,12 @@ class ReceiveState(resource.Resource):
         get request handling from actuators
         '''
         try:
-            ip="192.168.1.3"    
-            comportamento=self.s.getBehave(ip)
+            ip=self.server.address_parser(request.remote.hostinfo)['address'] 
+            comportamento=self.server.getBehave(ip)
             state={'state':comportamento}
-            state_cript_in_bytes=cript_dictionary_to_payload(state,aes_key_attuatore)
+            aes_key=get_aes(ip)
+            hmac_key=get_hmac(ip)
+            state_cript_in_bytes=cript_dictionary_to_payload(state,aes_key,hmac_key)
             return aiocoap.Message(payload=state_cript_in_bytes)
         except ValueError:
             logging.info("ReceiveState Handling failed")

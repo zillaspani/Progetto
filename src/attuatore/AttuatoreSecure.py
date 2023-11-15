@@ -21,7 +21,6 @@ class AttuatoreSecure(Attuatore):
     '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
     aes_key=b''
     hmac_key=b''
-    id_client=0
 
     def check_payload(self, ct, tag, key): 
         check=self.tag_hmac_sha256(ct, key)
@@ -103,21 +102,21 @@ class AttuatoreSecure(Attuatore):
         hello_str già pensato per inviare al server un json da poter ricercare in config.json del server dove
         verranno aggiunti le chiavi pubbliche dei sensori e attuatori
         '''
-        hello_str= json.dumps({'type':'attuatori', 'id':'attuatore'+ str(self.id_client)})
+        hello_str= json.dumps({'type':'actuators'})
         payload=json.dumps(hello_str).encode("utf-8") #byte
         response_hello=await self.send_get_request(endpoint,payload=payload)
         
         #il client ha ricevuto un messaggio dal server contenente la challenge
         response_string=json.loads(response_hello.payload.decode())
-        secret_byte=self.private_client_key_decrypt(response_string,"./src/attuatore/private_attuatore.pem")
+        secret_byte=self.private_client_key_decrypt(response_string,"./src/attuatore/keys/private_attuatore.pem")
 
         #ora si cifra con la chiave pubblica del server e si manda la risposta
-        payload=self.public_server_key_encrypt(secret_byte,"./src/sensore/public_server.pem")
+        payload=self.public_server_key_encrypt(secret_byte,"./src/sensore/keys/public_server.pem")
        
         response_challenge=await self.send_post_request(endpoint,payload=payload)
         #il client ha ricevuto le chiavi e se le prende
         response_string=json.loads(response_challenge.payload.decode())
-        secret_byte=self.private_client_key_decrypt(response_string,"./src/attuatore/private_attuatore.pem")
+        secret_byte=self.private_client_key_decrypt(response_string,"./src/attuatore/keys/private_attuatore.pem")
         
         secret_json=json.loads(secret_byte.decode())
         self.aes_key= b64decode(secret_json["aes"])

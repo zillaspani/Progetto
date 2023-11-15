@@ -212,10 +212,10 @@ class Server(ABC):
         try:
             if ip in self.sensors[campo]['sensors']:
                 logging.info(f"Il dispositivo {ip} è un sensore")
-                return "sensor"
+                return "sensors"
             if ip in self.actuators[campo]['actuators']:
                 logging.info(f"Il dispositivo {ip} è un attuatore")
-                return "attuatore"
+                return "actuators"
             else:
                 logging.info("Nessun dispositivo trovato")
                 return None
