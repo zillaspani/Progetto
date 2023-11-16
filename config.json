@@ -38,9 +38,9 @@
       },
       "sensori": [
         {
-          "name": "sensore0",
+          "name": "sensore",
           "ip": "192.168.1.1",
-          "psk": "CAMBIAMI0"
+          "psk": "CAMBIAMI"
         },
         {
           "name": "sensore1",
