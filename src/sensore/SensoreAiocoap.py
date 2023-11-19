@@ -6,7 +6,6 @@ import asyncio
 import json
 import logging
 from aiocoap import *
-from colorama import Fore
 from Sensore import Sensore
 
 class SensoreAiocoap(Sensore):
@@ -21,22 +20,21 @@ class SensoreAiocoap(Sensore):
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint)
             else:
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint,payload=payload)
-            logging.info(Fore.GREEN+"Richiesta inviata")
+            logging.info("Richiesta inviata")
 
             response = await protocol.request(request).response
-            print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            logging.info("Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                logging.info("Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                logging.info("Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            logging.info(f"Errore nella risposta del server: {response.code}")
             return None
     
     async def data_request(self):
@@ -50,8 +48,7 @@ class SensoreAiocoap(Sensore):
 
 def main():
     sensore= SensoreAiocoap()
-    print(sensore.max_iter)
-    print(sensore.mode)   
+    logging.info("iter="+str(sensore.max_iter))  
     try:
         if  sensore.mode=="loop":
             iter=0
@@ -65,8 +62,8 @@ def main():
                 if iter == sensore.max_iter:
                     exit("Max iters reached")
         else:
-            print("Console mode:")
-            print("-1 DataRequest\n-0 Exit")
+            logging.info("Console mode:")
+            logging.info("-1 DataRequest\n-0 Exit")
             while True:
                 run_command(sensore,input(">"))
 
@@ -83,7 +80,7 @@ def run_command(sensore,cmd):
     elif cmd == '0':
         exit("Bye")
     else:
-        print("Comando non valido, repeat")
+        logging.info("Comando non valido, repeat")
 
 
 if __name__ == "__main__":

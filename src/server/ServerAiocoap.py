@@ -52,7 +52,8 @@ class DataResource(resource.Resource):
                 logging.warning("Values not good")
                 raise Exception("Bad values")
             
-            self.server.addData(request_json)
+            ip=self.server.address_parser(request.remote.hostinfo)['address']
+            self.server.addData(request_json,ip)
             return aiocoap.Message(code=aiocoap.CHANGED)
         except ValueError:
             logging.error("Exception in DataResource "+ValueError)

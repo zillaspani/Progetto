@@ -7,7 +7,6 @@ import asyncio
 import json
 import logging
 from aiocoap import *
-from colorama import Fore
 from Sensore import Sensore
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
@@ -18,8 +17,6 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 
 class SensoreSecure(Sensore):
     '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
-    aes_key= b''
-    hmac_key= b''
     
     
     def encrypt_aes_easy(self, data, key):
@@ -125,22 +122,22 @@ class SensoreSecure(Sensore):
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint)
             else:
                 request = Message(code=aiocoap.GET, uri=endpoint, payload=payload)
-            logging.info(Fore.GREEN+"Richiesta inviata")
+            logging.info("Richiesta inviata")
 
             response = await protocol.request(request).response
             print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            logging.info("Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                logging.info("Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                logging.info("Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            logging.info(f"Errore nella risposta del server: {response.code}")
             return None
     
     async def send_post_request(self, endpoint,payload):
@@ -150,22 +147,22 @@ class SensoreSecure(Sensore):
         try:
             protocol = await aiocoap.Context.create_client_context()
             request = Message(code=aiocoap.POST, uri=endpoint, payload=payload)
-            logging.info(Fore.GREEN+"Richiesta inviata")
+            logging.info("Richiesta inviata")
 
             response = await protocol.request(request).response
             print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            logging.info("Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                logging.info("Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                logging.info("Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            logging.info(f"Errore nella risposta del server: {response.code}")
             return None 
     
     async def data_request(self):
@@ -196,9 +193,7 @@ class SensoreSecure(Sensore):
 
 def main():
     sensore= SensoreSecure()
-    #sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
-    print(sensore.max_iter)
-    print(sensore.mode)   
+    logging.info("iter="+str(sensore.max_iter)) 
     try:
         if  sensore.mode=="loop":
             iter=0

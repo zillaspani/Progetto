@@ -17,20 +17,6 @@ class Attuatore:
     def set_stato(self,stato):
         self.stato=stato
     
-
-
-    
-    def print_info(self, current_uri, network_interfaces):
-        '''
-        Fantasiaaa
-        '''
-        #current_uri = os.path.abspath(__file__)
-        print(Fore.GREEN+ "URI dell'attuatore corrente:", current_uri)
-        print()
-        #network_interfaces = psutil.net_if_addrs()
-        interface_name = "eth0"
-        ip_address = network_interfaces[interface_name][0].address
-        print(f"Indirizzo IP dell'interfaccia {interface_name} dell'attuatore: {ip_address}")
                
 
     def initConfig(self):

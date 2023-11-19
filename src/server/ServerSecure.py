@@ -35,7 +35,6 @@ async def main():
         root = aiocoap.resource.Site()
         root.add_resource(('data',), DataResource(s))
         root.add_resource(('receive',), ReceiveState(s))
-        root.add_resource(('heartbit',), Heartbit(s))
         root.add_resource(('authentication',), Authentication(s))
         logging.info(f"Resource tree OK")
         await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT])
@@ -167,10 +166,10 @@ class DataResource(resource.Resource):
             plaintext=decrypt_aes(request_json['iv'],request_json['ciphertext'], aes_key)
             request_json=json.loads(plaintext)
             print(request_json)
-            if not self.server.checkData(request_json):#:)
+            if not self.server.checkData(request_json):
                 logging.warning("Values not good")
                 raise Exception("Bad values")
-            self.server.addData(request_json)
+            self.server.addData(request_json,ip)
             return aiocoap.Message(code=aiocoap.CHANGED)
         except ValueError as Ve:
             logging.error("Exception in DataResource "+ Ve)
@@ -180,26 +179,7 @@ class DataResource(resource.Resource):
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
         
 
-class Heartbit(resource.Resource):
-    def __init__(self,s):
-        super().__init__()
-        self.server=s
 
-    '''
-    Riceve delle get da attuatore e sensore per sapere se stann bene
-    '''
-
-    async def render_get(self,request):
-        try:
-            request_json=json.loads(request.payload.decode())
-            ip=self.server.address_parser(request.remote.hostinfo)['address']
-            self.server.timestamp[ip]=request_json['time_stamp']
-            logging.info("HealtRequest Handling Success")
-            return aiocoap.Message(code=aiocoap.CHANGED)
-
-        except Exception:
-            logging.info("HealtRequest Handling failed")
-            return aiocoap.Message(code=aiocoap.BAD_REQUEST)
 
 class Authentication(resource.Resource):
     server=None   
@@ -209,8 +189,7 @@ class Authentication(resource.Resource):
    
     def add_keys(self,ip, aes, hmac):
         keys[ip]={'aes_key': aes, 'hmac_key':hmac}
-            
-            
+              
     def encrypt_with_rsa(self,pck,secret_string):
         session_key = get_random_bytes(16)
         cipher_rsa = PKCS1_OAEP.new(pck)
@@ -247,7 +226,8 @@ class Authentication(resource.Resource):
         return secret_byte
     
     def open_public_client_key(self, request):
-        tipo=self.server.getTipo(request)
+        ip=self.server.address_parser(request.remote.hostinfo)['address']
+        tipo=self.server.getTipo(ip)
         if tipo=='sensors':
             return RSA.import_key(open("../src/server/keys/public_sensore.pem").read())
         elif tipo=='actuators':
@@ -255,11 +235,11 @@ class Authentication(resource.Resource):
             
     async def render_get(self, request):
         try:
+            ip=self.server.address_parser(request.remote.hostinfo)['address']
             request_string=json.loads(request.payload.decode())
             request_json=json.loads(request_string)
-            if self.server.getTipo(request)!=request_json["type"]:
-                print(self.server.getTipo(request))
-                print(request_json["type"])
+            if self.server.getTipo(ip)!=request_json["type"]:
+                #print(request_json["type"])
                 raise Exception("Type not defined")
             pck=self.open_public_client_key(request)
 

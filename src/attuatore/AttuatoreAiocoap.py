@@ -1,6 +1,4 @@
-import os
 import time
-import psutil
 import json
 import asyncio
 import aiocoap
@@ -57,8 +55,7 @@ class AttuatoreAiocoap(Attuatore):
 
 def main():
     attuatore= AttuatoreAiocoap()
-    print(attuatore.max_iter)
-    print(attuatore.mode)   
+    logging.info("iter="+str(attuatore.max_iter))
     try:
         if  attuatore.mode=="loop":
             iter=0
@@ -72,8 +69,8 @@ def main():
                 if iter == attuatore.max_iter:
                     exit("Max iters reached")
         else:
-            print("Console mode:")
-            print("-1 StateRequest\n-0 Exit")
+            logging.info("Console mode:")
+            logging.info("-1 StateRequest\n-0 Exit")
             while True:
                 run_command(attuatore,input(">"))
 
@@ -90,7 +87,7 @@ def run_command(attuatore,cmd):
     elif cmd == '0':
         exit("Bye")
     else:
-        print("Comando non valido, repeat")
+        logging("Comando non valido, repeat")
 
 
 if __name__ == "__main__":

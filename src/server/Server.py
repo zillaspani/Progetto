@@ -92,7 +92,6 @@ class Server(ABC):
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
-           print("Run .py file from the root folder")
            with open("../config/server_config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
@@ -175,40 +174,37 @@ class Server(ABC):
                 for comportamento in campo[valore["name"]]["comportamento"]:
                     self.behavioral[nome][valore["name"]]["comportamento"].append(comportamento)
 
-    def pretty_print(values):
-        json_formatted_str = json.dumps(values, indent=2)
+    def pretty_print(self,values):
+        json_formatted_str = json.dumps(values, indent=3)
         print(json_formatted_str)
     
-    def addData(self, request_json):
+    def addData(self, request_json,ip):
         '''
         aggiunge i dati a values
         '''
         try:
             valori=None
-            campo = "campo0" #SOLO IN LOCALE, altrimenti decommenta
-            #campo = self.getCampo(request)
+            campo = self.getCampo(ip)
             for c in self.config:
                 if c["name"]==campo:
                     valori=c["valori"]
                     nomecampo=c["name"]
             for value in valori:
-                print(value)
                 self.values[nomecampo][value["name"]]["value"]=round(g.ALPHA*request_json[value["name"]]+(1-g.ALPHA)*self.values[nomecampo][value["name"]]["value"],2)
                 self.values[nomecampo][value["name"]]["number"]=self.values[nomecampo][value["name"]]["number"]+1
                 self.values[nomecampo][value["name"]]["history"].append(request_json[value["name"]])
                 if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
-                    self.values[nomecampo][value["name"]]["history"].pop()
-            logging.debug(self.values)
+                    self.values[nomecampo][value["name"]]["history"].pop()    
+
         except Exception as e:
             logging.error("Problema con l'aggiunta dei dati")
             logging.exception(e)
 
-    def getTipo(self,request):
+    def getTipo(self,ip):
         '''
             ritorna il tipo di dispositivo, None se non esiste il dispositivo o il campo
         '''
-        ip=self.address_parser(request.remote.hostinfo)['address']
-        campo=self.getCampo(request)
+        campo=self.getCampo(ip)
         try:
             if ip in self.sensors[campo]['sensors']:
                 logging.info(f"Il dispositivo {ip} è un sensore")
@@ -223,14 +219,13 @@ class Server(ABC):
             logging.error("Il campo fornito non esiste")
             return None
 
-    def getCampo(self,request):
+    def getCampo(self,ip):
         '''
             ritorna il campo an cui appartiene il sensore/attuatore
         '''
         try:
-            ip=self.address_parser(request.remote.hostinfo)['address']
             campo=self.address[ip]
-        except Exception as e:
+        except KeyError as e:
             logging.error("Ip errato/non in config")
             logging.error(e)
             return None
