@@ -1,7 +1,6 @@
 import json
 import logging
 import time
-from colorama import Fore
 
 class Attuatore:
     def __init__(self):
@@ -25,7 +24,6 @@ class Attuatore:
         '''
         try:
            time.sleep(3)
-           print("Run .py file from the root folder")
            with open("../config/attuatore_config.json","rb") as x: #again problem
                 x=x.read()
                 config=json.loads(x)
@@ -35,6 +33,8 @@ class Attuatore:
             exit("Error opening JSON")    
         
         try:
+            self.name=config['name']
+            self.address=config['address']
             self.server_uri="coap://"+config['uri']+"/"
             self.mode=config['behav']
             self.time_unit=config['t_unit']
@@ -46,6 +46,11 @@ class Attuatore:
             logging.error("Loading behavior failed")
             exit()
 
-
+        try:
+            self.psk=config['psk']
+        except Exception as err:
+            logging.error(err)
+            logging.error("Loading psk failed")
+            exit()
 
  

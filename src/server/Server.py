@@ -5,6 +5,7 @@ import globalConstants as g
 
 class Server(ABC):
     config={}
+    credentials=[]
     behavioral={}
     '''
     struttura dati json per comportamenti
@@ -87,11 +88,34 @@ class Server(ABC):
             for attuatore in campo["attuatori"]:
                 self.address[attuatore["ip"]]=campo["name"]
 
+    def loadCred(self):
+            '''
+                Carica la struttura dati address con valori {psk:b"psk",client:"client"}]
+            '''
+            
+            for campo in self.config:
+                for sensore in campo["sensori"]:
+                    record={}
+                    record["psk"]=sensore["psk"].encode()
+                    record["client_identity"]=sensore["name"].encode()
+                    #record={"psk": sensore["psk"].encode(),"client_name": sensore["name"].encode()}
+                    self.credentials.append(record)
+            for campo in self.config:
+                for attuatore in campo["attuatori"]:
+                    record={}
+                    record["psk"]=attuatore["psk"].encode()
+                    record["client_identity"]=attuatore["name"].encode()
+                    #record={"psk": sensore["psk"].encode(),"client_name": sensore["name"].encode()}
+                    self.credentials.append(record)
+            #print(self.credentials)
+
+    
     def initConfig(self):
         '''
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
+           
            with open("../config/server_config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
@@ -125,6 +149,12 @@ class Server(ABC):
             logging.error(err)
             logging.error("Loading sensors and/or actuators failed")
             exit()
+        try:
+            self.loadCred()
+        except Exception as err:
+            print(err)
+            logging.error("Impossibile caricare cred")
+            exit()    
 
     def getBehave(self,address):
         '''

@@ -1,6 +1,9 @@
 {
     "uri":"127.0.0.1",
+    "address":"127.0.0.1",
     "behav": "loop",
+    "psk":"actu0",
+    "name": "attuatore0",
     "t_unit":2,
     "t_interval":1,
     "max_iter":150

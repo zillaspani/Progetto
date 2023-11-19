@@ -2,7 +2,6 @@ import logging
 import json
 import random
 import time
-from colorama import Fore
 class Sensore:
     def __init__(self):
         self.initConfig()
@@ -16,7 +15,6 @@ class Sensore:
         '''
         try:
            time.sleep(3)
-           print("Run .py file from the root folder")
            with open("../config/sensore_config.json","rb") as x:
                 x=x.read()
                 config=json.loads(x)
@@ -26,7 +24,9 @@ class Sensore:
             exit("Error opening JSON")    
         
         try:
+            self.address=config['address']
             self.server_uri="coap://"+config['uri']+"/"
+            self.name=config['name']
             self.mode=config['behav']
             self.time_unit=config['t_unit']
             self.time_interval=config['t_interval']
@@ -40,6 +40,10 @@ class Sensore:
             logging.error(err)
             logging.error("Loading behavior failed")
             exit()
+        try:
+                self.psk=config['psk']
+        except:
+            logging.info("Non è presente il campo PSK, DTLS non disponibile.")
 
     def get_field_value(self):
         humidity=random.uniform(self.humi_lower_bound,self.humi_upper_bound)
