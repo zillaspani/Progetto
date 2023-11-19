@@ -3,7 +3,7 @@
     "behav": "loop",
     "t_unit":2,
     "t_interval":1,
-    "max_iter":200,
+    "max_iter":2000,
     "humidity_ub": 70.0,
     "humidity_lb": 30.0,
     "temperature_ub":30.0,

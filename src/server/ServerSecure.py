@@ -4,7 +4,7 @@ import logging
 import os
 import random
 import globalConstants as g
-from server import Server
+from Server import Server
 from aiocoap import resource
 import aiocoap
 import json
@@ -37,7 +37,6 @@ async def main():
         root.add_resource(('receive',), ReceiveState(s))
         root.add_resource(('heartbit',), Heartbit(s))
         root.add_resource(('authentication',), Authentication(s))
-        root.add_resource(('dummy',), DummyResource(s))
         logging.info(f"Resource tree OK")
         await aiocoap.Context.create_server_context(root,bind=[g.IP,g.PORT])
         logging.info(f"Avvio server aiocoap su %s e porta %s",g.IP, g.PORT)
@@ -250,9 +249,9 @@ class Authentication(resource.Resource):
     def open_public_client_key(self, request):
         tipo=self.server.getTipo(request)
         if tipo=='sensors':
-            return RSA.import_key(open("./src/server/keys/public_sensore.pem").read())
+            return RSA.import_key(open("../src/server/keys/public_sensore.pem").read())
         elif tipo=='actuators':
-            return RSA.import_key(open("./src/server/keys/public_attuatore.pem").read())
+            return RSA.import_key(open("../src/server/keys/public_attuatore.pem").read())
             
     async def render_get(self, request):
         try:
@@ -277,7 +276,7 @@ class Authentication(resource.Resource):
         try:
             pck=self.open_public_client_key(request)
             request_string=json.loads(request.payload.decode())
-            secret_byte=self.private_server_key_decrypt(request_string,"./src/server/keys/private_server.pem")
+            secret_byte=self.private_server_key_decrypt(request_string,"../src/server/keys/private_server.pem")
             secret=secret_byte.decode("utf-8")
             if secret!=self.challenge:
                 raise Exception("The challenge was unsuccessful")
@@ -327,39 +326,6 @@ class ReceiveState(resource.Resource):
         except ValueError:
             logging.info("ReceiveState Handling failed")
             return aiocoap.Message(code=aiocoap.BAD_REQUEST)
-    
-
-
-        
-
-'''
-TO DO:
-Sistema che ricevuto un dato e l'indirizzo IP effettui controlli base sui valori
-come formato, segno etc poi valuta la coerenza del dato in relazione agli altri
-dati disponibili con media comulativa.
-WARNING NEL CASO IN CUI IL VALORE CORRENTE RICEVUTO SIA DISCORDE CON LA MEDIA CUMILATIVA
-'''
-    
-
-'''
-TO DO: Capire come gestire le politiche di istradamento e federazione
-'''
-
-'''
-Console carina e coccolosa per le informazioni
-'''
-
-
-class DummyResource():
-    def __init__(self,s) -> None:
-        pass
-    async def render_get(self, request):
-        logging.info("Qui arriva")
-        text = ["Request came from %s." % request.remote.hostinfo]
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        text.append("The server address used %s." % request.remote.hostinfo_local)
-
-        return aiocoap.Message(content_format=0, payload="CCC\n".join(text).encode('utf8'))
 
 
 if __name__ == "__main__":

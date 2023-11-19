@@ -1,6 +1,7 @@
 import logging
 import json
 import random
+import time
 from colorama import Fore
 class Sensore:
     def __init__(self):
@@ -14,8 +15,9 @@ class Sensore:
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
+           time.sleep(3)
            print("Run .py file from the root folder")
-           with open("src/sensore/config.json","rb") as x:
+           with open("../config/sensore_config.json","rb") as x:
                 x=x.read()
                 config=json.loads(x)
         except Exception as err:
@@ -43,14 +45,4 @@ class Sensore:
         humidity=random.uniform(self.humi_lower_bound,self.humi_upper_bound)
         temperature=random.uniform(self.temp_lower_bound,self.temp_upper_bound)
         return {"umidita":round(humidity, self.roundig),"temperatura":round(temperature,self.roundig)}
-
-
-    def print_info(self, current_uri, network_interfaces):
-        #current_uri = os.path.abspath(__file__)
-        print(Fore.RED+ "URI del file sensore corrente:", current_uri)
-        #network_interfaces = psutil.net_if_addrs() 
-        #interface_name=psutil.net_if_addrs()
-        print(interface_name)
-        ip_address = network_interfaces[interface_name[0]][0].address
-        print(f"Indirizzo IP dell'interfaccia {interface_name} del sensore: {ip_address}")
-        print()    
+    

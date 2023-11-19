@@ -108,15 +108,15 @@ class AttuatoreSecure(Attuatore):
         
         #il client ha ricevuto un messaggio dal server contenente la challenge
         response_string=json.loads(response_hello.payload.decode())
-        secret_byte=self.private_client_key_decrypt(response_string,"./src/attuatore/keys/private_attuatore.pem")
+        secret_byte=self.private_client_key_decrypt(response_string,"../src/attuatore/keys/private_attuatore.pem")
 
         #ora si cifra con la chiave pubblica del server e si manda la risposta
-        payload=self.public_server_key_encrypt(secret_byte,"./src/sensore/keys/public_server.pem")
+        payload=self.public_server_key_encrypt(secret_byte,"../src/sensore/keys/public_server.pem")
        
         response_challenge=await self.send_post_request(endpoint,payload=payload)
         #il client ha ricevuto le chiavi e se le prende
         response_string=json.loads(response_challenge.payload.decode())
-        secret_byte=self.private_client_key_decrypt(response_string,"./src/attuatore/keys/private_attuatore.pem")
+        secret_byte=self.private_client_key_decrypt(response_string,"../src/attuatore/keys/private_attuatore.pem")
         
         secret_json=json.loads(secret_byte.decode())
         self.aes_key= b64decode(secret_json["aes"])

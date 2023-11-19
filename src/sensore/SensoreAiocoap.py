@@ -50,7 +50,6 @@ class SensoreAiocoap(Sensore):
 
 def main():
     sensore= SensoreAiocoap()
-    #sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
     print(sensore.max_iter)
     print(sensore.mode)   
     try:
@@ -61,22 +60,19 @@ def main():
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
                 loop.run_until_complete(sensore.data_request())
-                #time.sleep(sensore.time_interval)
-                #loop.run_until_complete(sensore.health_request())
-
                 #fine metodi di routine
                 iter=iter+1
                 if iter == sensore.max_iter:
                     exit("Max iters reached")
         else:
             print("Console mode:")
-            print("-1 DataRequest\n-2 AL MOMENTO NIENTE\n-0 Exit")
+            print("-1 DataRequest\n-0 Exit")
             while True:
                 run_command(sensore,input(">"))
 
     except Exception as ex:
         logging.error(ex)
-        logging.error("Actuator cannot be instantiated")
+        logging.error("Sensor cannot be instantiated")
         exit()
 
 
@@ -84,8 +80,6 @@ def run_command(sensore,cmd):
     loop=asyncio.get_event_loop()
     if cmd == '1':
         loop.run_until_complete(sensore.data_request())
-    elif cmd == '2':
-        print("CIAO PINO QUI NON ABBIAMO METODO")
     elif cmd == '0':
         exit("Bye")
     else:

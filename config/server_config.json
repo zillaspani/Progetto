@@ -1,0 +1,61 @@
+{
+  "campi": [
+    {
+      "name": "campo0",
+      "valori": [
+        {
+          "name": "temperatura"
+        },
+        {
+          "name": "umidita"
+        }
+      ],
+      "temperatura": {
+        "max": 40.0,
+        "min": -20.0,
+        "intervento": 25.0,
+        "comportamento": [
+          {
+            "attuatore0": true
+          },
+          {
+            "attuatore1": false
+          }
+        ]
+      },
+      "umidita": {
+        "max": 100.0,
+        "min": 0.0,
+        "intervento": 50.0,
+        "comportamento": [
+          {
+            "attuatore0": false
+          },
+          {
+            "attuatore1": true
+          }
+        ]
+      },
+      "sensori": [
+        {
+          "name": "sensore0",
+          "ip": "127.0.0.2"
+        },
+        {
+          "name": "sensore1",
+          "ip": "192.168.1.2"
+        }
+      ],
+      "attuatori": [
+        {
+          "name": "attuatore0",
+          "ip": "127.0.0.1"
+        },
+        {
+          "name": "attuatore1",
+          "ip": "192.168.1.4"
+        }
+      ]
+    }
+  ]
+}

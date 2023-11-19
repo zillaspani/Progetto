@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from colorama import Fore
 
 class Attuatore:
@@ -37,8 +38,9 @@ class Attuatore:
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
+           time.sleep(3)
            print("Run .py file from the root folder")
-           with open("src/attuatore/config.json","rb") as x: #again problem
+           with open("../config/attuatore_config.json","rb") as x: #again problem
                 x=x.read()
                 config=json.loads(x)
         except Exception as err:

@@ -93,7 +93,7 @@ class Server(ABC):
         '''
         try:
            print("Run .py file from the root folder")
-           with open("config.json","rb") as x:
+           with open("../config/server_config.json","rb") as x:
                 x=x.read()
                 self.config=json.loads(x)["campi"]
         except Exception as err:
