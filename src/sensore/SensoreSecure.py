@@ -1,7 +1,5 @@
 from base64 import b64decode, b64encode
-import os
 import time
-import psutil
 import aiocoap
 import asyncio
 import json

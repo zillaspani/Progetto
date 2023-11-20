@@ -11,7 +11,6 @@ import json
 import signal
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
-from colorama import Fore
 from Crypto.Util.Padding import pad, unpad
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes

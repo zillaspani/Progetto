@@ -6,7 +6,10 @@ SERVER_PY="/server/Server"
 ATTUATORE_PY="/attuatore/Attuatore"
 SENSORE_PY="/sensore/Sensore"
 TERMINAL="/usr/bin/x-terminal-emulator"
+CAT="/bin/cat"
 VERSION=""
+
+$CAT easter_egg.txt
 
 while true; do
     echo "Inserisci un numero per selezionare una versione del software"

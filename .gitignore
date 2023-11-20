@@ -4,3 +4,5 @@ __pycache__/
 src/tests/server_dtls.py
 testserver.json
 src/tests/client.py
+struct.txt
+src/requirements.txt
