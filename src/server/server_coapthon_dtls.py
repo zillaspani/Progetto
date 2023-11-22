@@ -18,12 +18,9 @@ import globalConstants as g
         self.resource_type = "rt1"
         self.content_type = "text/plain"
         self.interface_type = "if1"
-    
-   
+  
     def render_GET(self, request):
-        
-        
-        
+
         #self.payload 
         return self
 
@@ -37,7 +34,7 @@ class DataResource(Resource):
     def __init__(self,server=server,name="data_resource"):
         super(DataResource, self).__init__(name)
         self.server=server
-        self.payload = "Basic Resource" #cio che viene dato all'esterno 
+        self.payload = "" #cio che viene dato all'esterno 
         self.resource_type = "rt1"
         self.content_type = "text/plain"
         self.interface_type = "if1"
@@ -53,10 +50,11 @@ class DataResource(Resource):
             
             ip=self.server.address_parser(request.remote.hostinfo)['address']
             self.server.addData(request_json,ip)
-            self.payload=
+            self.code=defines.Codes.CHANGED.number
             return self
         except ValueError:
             logging.error("Exception in DataResource "+ValueError)
+            self.code=defines.Codes.BAD_GATEWAY.number
             return self
 
 
@@ -78,5 +76,5 @@ _sock.bind(hostname)
 _sock.listen(0)
 
 s= CoapServer(hostname, sock = _sock,cb_ignore_listen_exception= ignore_listen_exception)
-#s.add_resource('orologio/', BasicResource())
+s.add_resource('data/', DataResource())
 s.listen(1)
