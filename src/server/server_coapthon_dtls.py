@@ -68,9 +68,9 @@ _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 _sock = wrap_server(_sock,
                     cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile='server.key',
-                    certfile='server.pem',
-                    ca_certs='ca.pem',
+                    keyfile='src/server/keys/server.key',
+                    certfile='src/server/keys/server.pem',
+                    ca_certs='src/server/keys/ca.pem',
                     )
 _sock.bind(hostname)
 _sock.listen(0)
