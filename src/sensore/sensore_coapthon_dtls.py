@@ -9,8 +9,8 @@ from coapthon.messages.response import Response
 from dtls.wrapper import wrap_client
 import ssl
 import logging
+from Sensore import Sensore
 
-from sensore.Sensore import Sensore
 def ignore_write():
     return False
 
@@ -41,31 +41,37 @@ class SensoreAiocoap(Sensore):
         super().__init__()
         self.client=client
         
-    def sendData(self):
-        risposta = self.client.get('data/',payload=Sensore.get_field_value())
+    def send_data(self):
+        print("A")
+        payload=self.get_field_value()
+        risposta = self.client.post('data/',payload=payload)
+        print("A")
         print(risposta)
         pass
     
 def main():
     
-    hostname= (sensore.address,5684)
+    hostname= ("127.0.0.1",5684)
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     _sock = wrap_client(_sock,
                 cert_reqs=ssl.CERT_REQUIRED,
-                keyfile= 'client.key',
-                certfile= 'client.pem',
-                ca_certs='ca.pem',
+                keyfile= 'src/CA/sensore.key',
+                certfile= 'src/CA/sensore_cert.crt',
+                #ca_certs='ca.pem',
                 ciphers="RSA",
                 do_handshake_on_connect=False)
-
+    
     client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
     sensore= SensoreAiocoap(client=client) 
+ 
     try:
           
         while True:
+            
             time.sleep(sensore.time_unit)
             #Inserire qui i metodi di routine
+            
             sensore.send_data()
           
     
@@ -77,4 +83,5 @@ def main():
         client.close()
         exit()
     
+main()
     

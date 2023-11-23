@@ -1,6 +1,7 @@
 {
     "python.analysis.extraPaths": [
         "./src/lib",
-        "./src/lib/coapthon"
+        "./src/lib/coapthon",
+        "./src/coapthon"
     ]
 }

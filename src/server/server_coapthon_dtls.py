@@ -38,10 +38,11 @@ class DataResource(Resource):
         self.resource_type = "rt1"
         self.content_type = "text/plain"
         self.interface_type = "if1"
-    async def render_GET(self, request):
+    async def render_POST(self, request):
         '''
         get request handling from sensors
         '''
+        print("messaggio ricevuto")
         try: 
             request_json=json.loads(request.payload.decode())
             if not self.server.checkData(request_json):#:)
@@ -68,9 +69,9 @@ _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 _sock = wrap_server(_sock,
                     cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile='src/server/keys/server.key',
-                    certfile='src/server/keys/server.pem',
-                    ca_certs='src/server/keys/ca.pem',
+                    keyfile='src/CA/server_rsa.key',
+                    certfile='src/CA/server_cert.crt',
+                    #ca_certs='src/CA/ca.crt',
                     )
 _sock.bind(hostname)
 _sock.listen(0)
