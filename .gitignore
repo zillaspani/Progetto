@@ -6,3 +6,5 @@ testserver.json
 src/tests/client.py
 Testing/
 CA/
+*.key
+*.pem
