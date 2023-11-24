@@ -50,21 +50,25 @@ class SensoreAiocoap(Sensore):
         self.client=client
     
 def main():
-    sensore= SensoreAiocoap(client=None) 
-    hostname= (sensore.address,sensore.port)
-    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    _sock = wrap_client(_sock,
-                cert_reqs=ssl.CERT_REQUIRED,
-                keyfile= '../src/certificati/'+sensore.name+'.key',
-                certfile= '../src/certificati/'+sensore.name+'-cert.pem',
-                ca_certs='../src/certificati/ca-cert.pem',
-                ciphers="RSA",
-                do_handshake_on_connect=False)
-    
-    client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
-    sensore.set_client(client) 
- 
+    try:
+        sensore= SensoreAiocoap(client=None) 
+        hostname= (sensore.address,sensore.port)
+        _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _sock = wrap_client(_sock,
+                    cert_reqs=ssl.CERT_REQUIRED,
+                    keyfile= '../src/certificati/'+sensore.name+'.key',
+                    certfile= '../src/certificati/'+sensore.name+'-cert.pem',
+                    ca_certs='../src/certificati/ca-cert.pem',
+                    ciphers="RSA",
+                    do_handshake_on_connect=False)
+        
+        client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
+        sensore.set_client(client) 
+    except Exception as ex:
+        logging.exception(ex)
+        logging.error("Sensore non inizializzato")
+        
     try:
           
         while True:

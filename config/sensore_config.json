@@ -4,7 +4,7 @@
     "behav": "loop",
     "name": "sensore0",
     "psk": "sens0",
-    "port": "5683",
+    "port": 5683,
     "t_unit":2,
     "t_interval":1,
     "max_iter":150,
