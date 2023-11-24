@@ -37,6 +37,7 @@ class DataResource(Resource):
             ip=request._source[0]
             self.server.addData(request_json,ip)
             self.code=defines.Codes.CHANGED.number
+            self._sock
             return self
         except Exception as ex:
             logging.error("Exception in DataResource ")
@@ -103,7 +104,7 @@ try:
                     keyfile='../src/certificatiECDSA/server.key',
                     certfile='../src/certificatiECDSA/server-cert.pem',
                     ca_certs='../src/certificatiECDSA/ca-cert.pem',
-                    ciphers=g.CIPHER,
+                    #ciphers=g.CIPHER,
                     )
     _sock.bind(hostname)
     _sock.listen(0)

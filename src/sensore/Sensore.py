@@ -2,13 +2,24 @@ import logging
 import json
 import random
 import time
-class Sensore:
-    def __init__(self):
-        self.initConfig()
-        logging.basicConfig(level=logging.INFO)
-        logging.getLogger("coap-sensor").setLevel(logging.DEBUG)
-    
+import psutil
+import threading
+import setproctitle
 
+class Sensore:
+    stop=False
+    x=None
+    process=None
+    def __init__(self):
+        try:
+            setproctitle.getproctitle()
+            self.initConfig()
+            setproctitle.setproctitle(self.name)
+            logging.basicConfig(level=logging.INFO)
+            logging.getLogger("coap-sensor").setLevel(logging.DEBUG)
+        except:
+            exit("Errore durante l'init")
+        
     def initConfig(self):
         '''
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
