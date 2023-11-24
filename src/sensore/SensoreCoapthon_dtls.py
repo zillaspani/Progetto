@@ -77,7 +77,7 @@ def main():
                     keyfile= '../src/certificatiECDSA/'+sensore.name+'.key',
                     certfile= '../src/certificatiECDSA/'+sensore.name+'-cert.pem',
                     ca_certs='../src/certificatiECDSA/ca-cert.pem',
-                    chipher=sensore.cipher,
+                    #cipher=sensore.cipher,
                     do_handshake_on_connect=False)
         
         client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
@@ -101,8 +101,8 @@ def main():
         logging.error("Sensor cannot be instantiated")
         
         _sock.close()
-        client.close()
+
         exit()
-    
+    client.close()
 main()
     

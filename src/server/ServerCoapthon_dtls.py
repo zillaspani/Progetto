@@ -103,6 +103,7 @@ try:
                     keyfile='../src/certificatiECDSA/server.key',
                     certfile='../src/certificatiECDSA/server-cert.pem',
                     ca_certs='../src/certificatiECDSA/ca-cert.pem',
+                    ciphers=g.CIPHER,
                     )
     _sock.bind(hostname)
     _sock.listen(0)
