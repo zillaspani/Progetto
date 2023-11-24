@@ -1,9 +1,8 @@
-from abc import ABC
 import logging
 import json
 import globalConstants as g
 
-class Server(ABC):
+class Server():
     config={}
     credentials=[]
     behavioral={}

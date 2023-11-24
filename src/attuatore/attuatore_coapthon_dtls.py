@@ -10,7 +10,7 @@ from dtls.wrapper import wrap_client
 import ssl
 import logging
 import json
-from Sensore import Sensore
+from Attuatore import Attuatore
 
 def ignore_write():
     return False
@@ -36,42 +36,47 @@ req.destination = hostname
 x= client.send_request(req) #questo e' un modo di fare una get, a mano. 
 '''
 
-class SensoreAiocoap(Sensore):
+class AttuatoreCoapthon(Attuatore):
     client=None
     def __init__(self,client=None):
         super().__init__()
         self.client=client
+    
+    def set_client(self,client):
+        self.client=client
         
     def send_data(self):
         payload=self.get_field_value()
-        print("ENTRA?")
-        self.client.post('data/',json.dumps(payload).encode('ascii'))
-        print("ENTRA?")
+        risposta = self.client.post('data/',json.dumps(payload).encode('ascii'))
+        print(risposta)
     
 def main():
-    
-    hostname= ("127.0.0.1",5683)
-    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    _sock = wrap_client(_sock,
-                cert_reqs=ssl.CERT_REQUIRED,
-                keyfile= '../src/certificati/sensore0.key',
-                certfile= '../src/certificati/sensore0-cert.pem',
-                ca_certs='../src/certificati/ca-cert.pem',
-                ciphers="RSA",
-                do_handshake_on_connect=False)
-    
-    client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
-    sensore= SensoreAiocoap(client=client) 
- 
     try:
+        attuatore= AttuatoreCoapthon(client=None)
+        hostname= (attuatore.address,attuatore.port)
+        _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _sock = wrap_client(_sock,
+                    cert_reqs=ssl.CERT_REQUIRED,
+                    keyfile= '../src/certificati/'+attuatore.name+'.key',
+                    certfile= '../src/certificati/'+attuatore.name+'-cert.pem',
+                    ca_certs='../src/certificati/ca-cert.pem',
+                    ciphers="RSA",
+                    do_handshake_on_connect=False)
+    
+        client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
+        attuatore.set_client(client) 
+ 
+    
           
         while True:
-            time.sleep(sensore.time_unit)
+            time.sleep(attuatore.time_unit)
             #Inserire qui i metodi di routine
-            
-            sensore.send_data()
-            print("dati inviati")
+            try:
+                attuatore.state_request()
+            except Exception as e:
+                logging.exception(e)
+                logging.exception("gestita male")               
           
     
     except Exception as ex:

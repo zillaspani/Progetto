@@ -8,3 +8,4 @@ Testing/
 CA/
 *.key
 *.pem
+*.req
