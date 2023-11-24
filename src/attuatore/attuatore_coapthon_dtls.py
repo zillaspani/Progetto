@@ -59,9 +59,13 @@ class AttuatoreCoapthon(Attuatore):
         if response==None:
             logging.error("Something went wrong during server request handling")
         else:
-            if response_json['state']!="trap": 
+            if response_json['state']!="trap":
+                if self.stato != response_json['state']:
+                    logging.info("State Changed")
+                else:
+                    logging.info("State Not Changed")
                 self.set_stato=response_json['state']
-                logging.info("State Changed")
+               
             else:
                 logging.info("State Not Changed")
     

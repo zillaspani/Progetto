@@ -160,7 +160,7 @@ class Server():
             Dato l'ip dell'attuatore restituisce il suo comportamento.
             Assunzione:
             Diamo importantanza all'umidità, dunque qualora le soglie di intervento fossero entrambe nella
-            zona critica, si utilizza il comportamento definito per la temperatura.
+            zona critica, si utilizza il comportamento definito per la temperatura. # UMIDITà?
         '''
         target=None
         campo=self.address[address]
@@ -169,17 +169,31 @@ class Server():
         umidita=self.values[campo]["umidita"]["value"]
         interventoT=self.behavioral[campo]["temperatura"]["intervento"]
         interventoU=self.behavioral[campo]["umidita"]["intervento"]
-        if(temperatura>=interventoT):
-            target="temperatura"
+            
         if(umidita>=interventoU):       #in accordo alle assunzioni, se l'umidità
             target="umidita"            #supera la soglia, si agirà sempre su questa indipendentemente
-                                        #dalla temperatura
-        if target==None:    
-            return "trap"
+            
+            for comportamento in self.behavioral[campo][target]["comportamento"]:
+                if name in comportamento:
+                    return comportamento[name]                        
         else:
+            target="umidita"
+            for comportamento in self.behavioral[campo][target]["comportamento"]:
+                if name in comportamento:
+                    return not comportamento[name]
+                    
+        if(temperatura>=interventoT):
+            target="temperatura"
             for comportamento in self.behavioral[campo][target]["comportamento"]:
                 if name in comportamento:
                     return comportamento[name]
+        else:
+            target="temperatura"
+            for comportamento in self.behavioral[campo][target]["comportamento"]:
+                if name in comportamento:
+                    return comportamento[name]
+             
+        return "trap"
         
     def hardValues(self,campo,temp,umid):
         '''
