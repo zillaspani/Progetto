@@ -4,7 +4,6 @@
     "behav": "loop",
     "psk":"actu0",
     "name": "attuatore0",
-    "cipher":"RSA",
     "t_unit":2,
     "t_interval":1,
     "max_iter":150,

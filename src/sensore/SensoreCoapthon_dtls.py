@@ -1,3 +1,4 @@
+import sys
 import time
 from coapthon import defines
 from coapthon.client.helperclient import HelperClient
@@ -11,6 +12,8 @@ import ssl
 import logging
 import json
 from Sensore import Sensore
+
+
 
 def ignore_write():
     return False
@@ -28,13 +31,33 @@ def _cb_ignore_read_exception():
     :return: True if further processing should be done, False processing should be stopped
     """
     return False
-'''req = Request()
-req.code = defines.Codes.GET.number
-req.uri_path = "nicola/"
-req.type = defines.Types["CON"]
-req.destination = hostname
-x= client.send_request(req) #questo e' un modo di fare una get, a mano. 
-'''
+
+def getCipherType():
+    '''if len(sys.argv) != 1:
+        print("Usage: python3 SensoreCoapthon_dtls.py <number>")
+        print("1 per RSA ")
+        print("1 per Crittografia a curve ellittiche ")
+        print("1 per Crittografia a curve ellittiche con DH key exchange ")
+        sys.exit(1)
+    '''    
+    inputC = int(sys.argv[1])
+
+    while True:
+        if inputC == 1:
+            print("Hai scelto RSA")
+            return "RSA"
+        elif inputC == 2:
+            print("Hai scelto Crittografia a curve ellittiche")
+            return "EC"
+        elif inputC == 3:
+            print("Hai scelto Crittografia a curve ellittiche con DH key exchange")
+            return "ECDH"
+        else:
+            print("Numero non valido")
+            inputC = int(input("Inserisci un numero da 1 a 3 per effettuare la tua scelta: "))
+
+
+
 
 class SensoreCoapthon(Sensore):
     client=None
@@ -50,7 +73,8 @@ class SensoreCoapthon(Sensore):
         self.client=client
     
 def main():
-    '''
+    ciptherType=getCipherType()
+
     try:
         sensore= SensoreCoapthon(client=None) 
         hostname= (sensore.address,sensore.port)
@@ -58,26 +82,9 @@ def main():
         _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _sock = wrap_client(_sock,
                     cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile= '../src/certificati/'+sensore.name+'.key',
-                    certfile= '../src/certificati/'+sensore.name+'-cert.pem',
-                    ca_certs='../src/certificati/ca-cert.pem',
-                    ciphers=sensore.cipher,
-                    do_handshake_on_connect=False)
-        
-        client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
-        sensore.set_client(client)
-    ''' 
-    try:
-        sensore= SensoreCoapthon(client=None) 
-        hostname= (sensore.address,sensore.port)
-        _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        _sock = wrap_client(_sock,
-                    cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile= '../src/certificatiECDSA/'+sensore.name+'.key',
-                    certfile= '../src/certificatiECDSA/'+sensore.name+'-cert.pem',
-                    ca_certs='../src/certificatiECDSA/ca-cert.pem',
-                    #cipher=sensore.cipher,
+                    keyfile= '../src/certificati'+ciptherType+'/'+sensore.name+'.key',
+                    certfile= '../src/certificati'+ciptherType+'/'+sensore.name+'-cert.pem',
+                    ca_certs='../src/certificati'+ciptherType+'/ca-cert.pem',
                     do_handshake_on_connect=False)
         
         client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
@@ -85,6 +92,7 @@ def main():
     except Exception as ex:
         logging.exception(ex)
         logging.error("Sensore non inizializzato")
+        client.close()
         
     try:
           
@@ -101,8 +109,9 @@ def main():
         logging.error("Sensor cannot be instantiated")
         
         _sock.close()
-
+        client.close()
         exit()
-    client.close()
+
+    
 main()
     

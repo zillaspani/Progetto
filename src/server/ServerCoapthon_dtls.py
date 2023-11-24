@@ -1,3 +1,4 @@
+import sys
 from coapthon import defines
 from coapthon.server.coap import CoAP as CoapServer
 from coapthon.resources.resource import Resource
@@ -8,6 +9,8 @@ import logging
 import json
 import globalConstants as g
 from Server import Server
+
+
 
 class DataResource(Resource):      
     '''
@@ -76,35 +79,53 @@ class ReceiveState(Resource):
 def ignore_listen_exception():
     return True
 
+def getCipherSuiteType():
+    cipher_suites = {
+            1: ("ECDHE-RSA-AES128-GCM-SHA256", "RSA"),# 1-1
+            2: ("ECDH-ECDSA-AES128-GCM-SHA256", "EC"),# no
+            3: ("DHE-RSA-AES128-GCM-SHA256", "RSA"),# no
+            4: ("DH-RSA-AES256-GCM-SHA256", "ECDH"),# no
+            5: ("ECDHE-ECDSA-AES128-GCM-SHA256", "EC"),# no
+            6: ("ECDH-ECDSA-AES128-GCM-SHA256", "EC"),
+            7: ("DH-ECDSA-CHACHA20-POLY1305", "EC"),
+            8: ("ECDHE-ECDSA-CHACHA20-POLY1305", "EC")
+        }
+    '''
+    if len(sys.argv) != 1:
+        print("Usage: python3 ServerCoapthon_dtls.py <number>")
+        #i=0
+        for cipher in cipher_suites:
+             #print(" - "+str(i)+" for "+cipher[0])
+             print(cipher)
+        sys.exit(1)
+    '''
+    inputC = int(sys.argv[1])
+    
+    if inputC in cipher_suites:
+        chosen_suite, certs_type = cipher_suites[inputC]
+        print(f"Hai scelto {chosen_suite}")
+        return chosen_suite,certs_type
+    else:
+        print("Scelta non valida") 
+
+    
+
+
+
 server=Server()
 hostname= (g.IP,g.PORT)
-'''
-try:
-    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    _sock = wrap_server(_sock,
-                    cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile='../src/certificati/server.key',
-                    certfile='../src/certificati/server-cert.pem',
-                    ca_certs='../src/certificati/ca-cert.pem',
-                    )
-    _sock.bind(hostname)
-    _sock.listen(0)
-except Exception as e:
-    logging.exception(e)
-    logging.error("socket DTLS not started check certificates")
-    exit()
-'''
+
+cipherSuite,certsType=getCipherSuiteType()
 
 try:
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     _sock = wrap_server(_sock,
                     cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile='../src/certificatiECDSA/server.key',
-                    certfile='../src/certificatiECDSA/server-cert.pem',
-                    ca_certs='../src/certificatiECDSA/ca-cert.pem',
-                    #ciphers=g.CIPHER,
+                    keyfile='../src/certificati'+certsType+'/server.key',
+                    certfile='../src/certificati'+certsType+'/server-cert.pem',
+                    ca_certs='../src/certificati'+certsType+'/ca-cert.pem',
+                    ciphers=cipherSuite,
                     )
     _sock.bind(hostname)
     _sock.listen(0)
