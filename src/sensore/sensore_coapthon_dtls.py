@@ -44,25 +44,26 @@ class SensoreAiocoap(Sensore):
         
     def send_data(self):
         payload=self.get_field_value()
-        print("ENTRA?")
         self.client.post('data/',json.dumps(payload).encode('ascii'))
-        print("ENTRA?")
+        
+    def set_client(self,client):
+        self.client=client
     
 def main():
-    
-    hostname= ("127.0.0.1",5683)
+    sensore= SensoreAiocoap(client=None) 
+    hostname= (sensore.address,sensore.port)
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     _sock = wrap_client(_sock,
                 cert_reqs=ssl.CERT_REQUIRED,
-                keyfile= '../src/certificati/sensore0.key',
-                certfile= '../src/certificati/sensore0-cert.pem',
+                keyfile= '../src/certificati/'+sensore.name+'.key',
+                certfile= '../src/certificati/'+sensore.name+'-cert.pem',
                 ca_certs='../src/certificati/ca-cert.pem',
                 ciphers="RSA",
                 do_handshake_on_connect=False)
     
     client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
-    sensore= SensoreAiocoap(client=client) 
+    sensore.set_client(client) 
  
     try:
           

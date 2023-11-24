@@ -45,11 +45,20 @@ class DataResource(Resource):
             return self
  
  
-class ReceiveState(Resource): 
+class ReceiveState(Resource):
+    server=None
+    def __init__(self,server,name="receive_state_resource"):
+        super(ReceiveState, self).__init__(name)
+        self.server=server
+        self.payload = "" #cio che viene dato all'esterno 
+        self.resource_type = "rt1"
+        self.content_type = "text/plain"
+        self.interface_type = "if1"
+         
     def render_GET(self, request):
         try:
            ip=request._source[0]
-           comportamento=self.s.getBehave(ip)
+           comportamento=self.server.getBehave(ip)
            state={'state':comportamento}
            self.payload=json.dumps(state).encode("utf-8")
            self.code=defines.Codes.VALID.number
@@ -88,6 +97,6 @@ except Exception as e:
 
 s= CoapServer(hostname, sock = _sock,cb_ignore_listen_exception= ignore_listen_exception)
 s.add_resource('data/',DataResource(server))
-s.add_resource('receive/',DataResource(server))
+s.add_resource('receive/',ReceiveState(server))
 logging.info("server started")
 s.listen(1)

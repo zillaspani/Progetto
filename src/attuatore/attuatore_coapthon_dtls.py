@@ -46,9 +46,24 @@ class AttuatoreCoapthon(Attuatore):
         self.client=client
         
     def send_data(self):
-        payload=self.get_field_value()
-        risposta = self.client.post('data/',json.dumps(payload).encode('ascii'))
-        print(risposta)
+        risposta = self.client.get('receive/')
+        return risposta
+        
+    def state_request(self):
+        '''
+        Invia una richiesta al server per conoscere in quale stato deve essere l'attuatore
+        '''
+        response=self.send_data()
+
+        response_json=json.loads(response.payload)
+        if response==None:
+            logging.error("Something went wrong during server request handling")
+        else:
+            if response_json['state']!="trap": 
+                self.set_stato=response_json['state']
+                logging.info("State Changed")
+            else:
+                logging.info("State Not Changed")
     
 def main():
     try:

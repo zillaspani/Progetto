@@ -24,6 +24,7 @@ class Sensore:
             exit("Error opening JSON")    
         
         try:
+            self.port=config['port']
             self.address=config['address']
             self.server_uri="coap://"+config['uri']+"/"
             self.name=config['name']
