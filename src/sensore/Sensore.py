@@ -28,6 +28,7 @@ class Sensore:
             self.address=config['address']
             self.server_uri="coap://"+config['uri']+"/"
             self.name=config['name']
+            self.cipher=config['cipher']
             self.mode=config['behav']
             self.time_unit=config['t_unit']
             self.time_interval=config['t_interval']

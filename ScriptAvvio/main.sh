@@ -38,7 +38,7 @@ while true; do
                 ;;
             4)
                 echo "Hai selezionato la versione dTLS"
-                VERSION="DTLSCoapthon.py"
+                VERSION="Coapthon_dtls.py"
                 ;;
             *)
                 echo "Selezione non valida. Inserisci un numero valido."

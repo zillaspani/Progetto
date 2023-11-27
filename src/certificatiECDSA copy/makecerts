@@ -1,0 +1,30 @@
+#!/bin/bash -eu
+
+##############################################################################
+#
+# Generate Certificates for PyDTLS Unit Testing
+#
+# This script is invoked manually (as opposed to by the unit test suite), in
+# order to generate certain certificates that are required to be valid by
+# the unit test suite.
+#
+# This script is not portable: it has been tested on Ubuntu 13.04 only. New
+# certificates are written into the current directory.
+#
+# Copyright 2014 Ray Brown
+#
+##############################################################################
+
+DIR=`dirname "$0"`
+openssl ecparam -genkey -name secp256r1 -out ca.key
+openssl req -x509 -new -sha512 -nodes -key ca.key -days 7307 -out ca-cert.pem -config "$DIR/openssl_ca.cnf"
+#openssl req -config "$DIR/openssl_ca.cnf" -x509 -newkey rsa -nodes -keyout tmp_ca.key -out ca-cert.pem -days 3650
+
+# Generate ECDSA keypair
+openssl ecparam -genkey -out server.key -name secp256r1
+openssl ecparam -genkey -out sensore0.key -name secp256r1
+
+# Generate self-signed certificates
+openssl req -config "$DIR/openssl_server.cnf" -x509 -new -key server.key -out server-cert.pem
+openssl req -config "$DIR/openssl_server.cnf" -x509 -new -key sensore0.key -out sensore0-cert.pem
+

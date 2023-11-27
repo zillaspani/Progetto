@@ -9,3 +9,5 @@ CA/
 *.key
 *.pem
 *.req
+*.pub
+*.crt

@@ -36,7 +36,7 @@ req.destination = hostname
 x= client.send_request(req) #questo e' un modo di fare una get, a mano. 
 '''
 
-class SensoreAiocoap(Sensore):
+class SensoreCoapthon(Sensore):
     client=None
     def __init__(self,client=None):
         super().__init__()
@@ -50,8 +50,9 @@ class SensoreAiocoap(Sensore):
         self.client=client
     
 def main():
+    '''
     try:
-        sensore= SensoreAiocoap(client=None) 
+        sensore= SensoreCoapthon(client=None) 
         hostname= (sensore.address,sensore.port)
         _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -60,7 +61,23 @@ def main():
                     keyfile= '../src/certificati/'+sensore.name+'.key',
                     certfile= '../src/certificati/'+sensore.name+'-cert.pem',
                     ca_certs='../src/certificati/ca-cert.pem',
-                    ciphers="RSA",
+                    ciphers=sensore.cipher,
+                    do_handshake_on_connect=False)
+        
+        client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
+        sensore.set_client(client)
+    ''' 
+    try:
+        sensore= SensoreCoapthon(client=None) 
+        hostname= (sensore.address,sensore.port)
+        _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _sock = wrap_client(_sock,
+                    cert_reqs=ssl.CERT_REQUIRED,
+                    keyfile= '../src/certificatiECDSA/'+sensore.name+'.key',
+                    certfile= '../src/certificatiECDSA/'+sensore.name+'-cert.pem',
+                    ca_certs='../src/certificatiECDSA/ca-cert.pem',
+                    chipher=sensore.cipher,
                     do_handshake_on_connect=False)
         
         client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)

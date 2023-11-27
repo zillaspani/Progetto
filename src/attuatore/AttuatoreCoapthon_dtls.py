@@ -80,7 +80,7 @@ def main():
                     keyfile= '../src/certificati/'+attuatore.name+'.key',
                     certfile= '../src/certificati/'+attuatore.name+'-cert.pem',
                     ca_certs='../src/certificati/ca-cert.pem',
-                    ciphers="RSA",
+                    ciphers=attuatore.cipher,
                     do_handshake_on_connect=False)
     
         client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)

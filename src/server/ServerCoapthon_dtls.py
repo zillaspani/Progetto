@@ -77,7 +77,7 @@ def ignore_listen_exception():
 
 server=Server()
 hostname= (g.IP,g.PORT)
-
+'''
 try:
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -86,6 +86,23 @@ try:
                     keyfile='../src/certificati/server.key',
                     certfile='../src/certificati/server-cert.pem',
                     ca_certs='../src/certificati/ca-cert.pem',
+                    )
+    _sock.bind(hostname)
+    _sock.listen(0)
+except Exception as e:
+    logging.exception(e)
+    logging.error("socket DTLS not started check certificates")
+    exit()
+'''
+
+try:
+    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    _sock = wrap_server(_sock,
+                    cert_reqs=ssl.CERT_REQUIRED,
+                    keyfile='../src/certificatiECDSA/server.key',
+                    certfile='../src/certificatiECDSA/server-cert.pem',
+                    ca_certs='../src/certificatiECDSA/ca-cert.pem',
                     )
     _sock.bind(hostname)
     _sock.listen(0)

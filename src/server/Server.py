@@ -238,7 +238,7 @@ class Server():
                 self.values[nomecampo][value["name"]]["history"].append(request_json[value["name"]])
                 if len(self.values[nomecampo][value["name"]]["history"])>g.HISTORY:
                     self.values[nomecampo][value["name"]]["history"].pop()    
-
+            self.pretty_print(self.values)
         except Exception as e:
             logging.error("Problema con l'aggiunta dei dati")
             logging.exception(e)

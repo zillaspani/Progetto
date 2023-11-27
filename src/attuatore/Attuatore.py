@@ -34,6 +34,7 @@ class Attuatore:
         
         try:
             self.name=config['name']
+            self.cipher=config['cipher']
             self.port=config['port']
             self.address=config['address']
             self.server_uri="coap://"+config['uri']+"/"
