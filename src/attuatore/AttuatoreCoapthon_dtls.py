@@ -1,3 +1,4 @@
+import sys
 import time
 from coapthon import defines
 from coapthon.client.helperclient import HelperClient
@@ -28,13 +29,30 @@ def _cb_ignore_read_exception():
     :return: True if further processing should be done, False processing should be stopped
     """
     return False
-'''req = Request()
-req.code = defines.Codes.GET.number
-req.uri_path = "nicola/"
-req.type = defines.Types["CON"]
-req.destination = hostname
-x= client.send_request(req) #questo e' un modo di fare una get, a mano. 
-'''
+
+def getCipherType():
+    '''
+    if len(sys.argv) != 1:
+        print("Usage: python3 AttuatoreCoapthon_dtls.py <number>")
+        print("1 per RSA ")
+        print("1 per Crittografia a curve ellittiche ")
+        print("1 per Crittografia a curve ellittiche con DH key exchange ")
+        sys.exit(1)
+    inputC = int(sys.argv[1])
+    '''
+    while True:
+        if inputC == 1:
+            print("Hai scelto RSA")
+            return "RSA"
+        elif inputC == 2:
+            print("Hai scelto Crittografia a curve ellittiche")
+            return "EC"
+        elif inputC == 3:
+            print("Hai scelto Crittografia a curve ellittiche con DH key exchange")
+            return "ECDH"
+        else:
+            print("Numero non valido")
+            inputC = int(input("Inserisci un numero da 1 a 3 per effettuare la tua scelta: "))
 
 class AttuatoreCoapthon(Attuatore):
     client=None
@@ -70,6 +88,7 @@ class AttuatoreCoapthon(Attuatore):
                 logging.info("State Not Changed")
     
 def main():
+    ciptherType=getCipherType()
     try:
         attuatore= AttuatoreCoapthon(client=None)
         hostname= (attuatore.address,attuatore.port)
@@ -77,10 +96,9 @@ def main():
         _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _sock = wrap_client(_sock,
                     cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile= '../src/certificati/'+attuatore.name+'.key',
-                    certfile= '../src/certificati/'+attuatore.name+'-cert.pem',
-                    ca_certs='../src/certificati/ca-cert.pem',
-                    ciphers=attuatore.cipher,
+                    keyfile= '../src/certificati'+ciptherType+'/'+attuatore.name+'.key',
+                    certfile= '../src/certificati'+ciptherType+'/'+attuatore.name+'-cert.pem',
+                    ca_certs='../src/certificati'+ciptherType+'/ca-cert.pem',
                     do_handshake_on_connect=False)
     
         client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
