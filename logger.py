@@ -3,7 +3,7 @@ import sys
 import psutil
 import time
 import os
-#import progressbar
+import progressbar
 
 interval=5
 number_of_cpu=30
@@ -16,7 +16,7 @@ def get_process_pid(process_name):
             return process.pid
 
 def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
-    #bar = progressbar.ProgressBar(maxval=number_of_cpu,widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar = progressbar.ProgressBar(maxval=number_of_cpu,widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     try:
         os.remove(process_name+".csv",)
     except:

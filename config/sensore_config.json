@@ -6,7 +6,7 @@
     "cipher":"ECDHE-ECDSA-AES128-SHA256",
     "psk": "sens0",
     "port": 5683,
-    "t_unit":1,
+    "t_unit":0.1,
     "t_interval":1,
     "max_iter":150,
     "humidity_ub": 70.0,
