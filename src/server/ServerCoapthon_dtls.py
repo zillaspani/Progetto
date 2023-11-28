@@ -39,6 +39,7 @@ class DataResource(Resource):
             ip=request._source[0]
             self.server.addData(request_json,ip)
             self.code=defines.Codes.CHANGED.number
+            self._sock
             return self
         except Exception as ex:
             logging.error("Exception in DataResource ")
