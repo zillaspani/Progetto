@@ -4,7 +4,6 @@ from coapthon.server.coap import CoAP as CoapServer
 from coapthon.resources.resource import Resource
 import socket
 from dtls.wrapper import wrap_server
-import ssl
 import logging
 import json
 import globalConstants as g
@@ -71,60 +70,22 @@ class ReceiveState(Resource):
            self.payload=""
            self.code=defines.Codes.BAD_GATEWAY.number
            return self
-    
-    
- 
-    
+        
 def ignore_listen_exception():
     return True
 
-def getCipherSuiteType():
-    cipher_suites = {
-            1: ("ECDHE-RSA-AES128-GCM-SHA256", "RSA"),# 1-1
-            2: ("ECDH-ECDSA-AES128-GCM-SHA256", "EC"),# no
-            3: ("DHE-RSA-AES128-GCM-SHA256", "RSA"),# no
-            4: ("DH-RSA-AES256-GCM-SHA256", "ECDH"),# no
-            5: ("ECDHE-ECDSA-AES128-GCM-SHA256", "EC"),# no
-            6: ("ECDH-ECDSA-AES128-GCM-SHA256", "EC"),
-            7: ("DH-ECDSA-CHACHA20-POLY1305", "EC"),
-            8: ("ECDHE-ECDSA-CHACHA20-POLY1305", "EC")
-        }
-    '''
-    if len(sys.argv) != 1:
-        print("Usage: python3 ServerCoapthon_dtls.py <number>")
-        #i=0
-        for cipher in cipher_suites:
-             #print(" - "+str(i)+" for "+cipher[0])
-             print(cipher)
-        sys.exit(1)
-    '''
-    inputC = int(sys.argv[1])
-    
-    if inputC in cipher_suites:
-        chosen_suite, certs_type = cipher_suites[inputC]
-        print(f"Hai scelto {chosen_suite}")
-        return chosen_suite,certs_type
-    else:
-        print("Scelta non valida") 
-
-    
-
-
-
 server=Server()
 hostname= (g.IP,g.PORT)
-
-cipherSuite,certsType=getCipherSuiteType()
+#ciptherType=getCipherType()
 
 try:
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     _sock = wrap_server(_sock,
-                    cert_reqs=ssl.CERT_REQUIRED,
-                    keyfile='../src/certificati'+certsType+'/server.key',
-                    certfile='../src/certificati'+certsType+'/server-cert.pem',
-                    ca_certs='../src/certificati'+certsType+'/ca-cert.pem',
-                    ciphers=cipherSuite,
+                    #cert_reqs=ssl.CERT_REQUIRED,
+                    keyfile='../src/certs/keycert.pem',
+                    certfile='../src/certs/keycert.pem',
+                    ca_certs='../src/certs/ca-cert.pem',
                     )
     _sock.bind(hostname)
     _sock.listen(0)
