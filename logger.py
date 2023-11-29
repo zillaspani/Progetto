@@ -8,6 +8,7 @@ import progressbar
 interval=5
 number_of_cpu=30
 interface="lo"
+mwh_cost=0.2777778
 
 def get_process_pid(process_name):
     for process in [psutil.Process(pid) for pid in psutil.pids()]:
@@ -28,7 +29,7 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
 
         
     with open(process_name+".csv", "x") as CSV:
-        CSV.write("TIME,CPU,RAM,CPU_W,IF_WLAN_W,TOT_W \n")
+        CSV.write("TIME,CPU,RAM,CPU_W,IF_WLAN_W,TOT_W,MWH \n")
         process_pid = get_process_pid(process_name)
         process = psutil.Process(process_pid)
         print("Start logging on "+process_name)
@@ -42,6 +43,7 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
             
             time_s=time.time()
             i = 0
+            total_mwh=0
             bar.start()
             while(i<maximum):
                 time_start=time.time()
@@ -56,7 +58,9 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
                 packets_total=packets_counter[0]+packets_counter[1]-packets_counter_old[0]-packets_counter_old[1]
                 packet_rate=packets_total/delta*pow(10,-6)
                 process_network_energy=0.942+0.064+4.813*pow(10,-3)*packet_rate
-                CSV.write(str(round(time.time()-time_s,2))+","+str(process_cpu)+","+str(round(process_ram,2))+","+str(round(process_cpu_energy,2))+","+str(round(process_network_energy,2))+","+str(round(process_cpu_energy+process_network_energy,2))+"\n")
+                total_w=process_cpu_energy+process_network_energy
+                total_mwh+=total_w*delta*mwh_cost
+                CSV.write(str(round(time.time()-time_s,2))+","+str(process_cpu)+","+str(round(process_ram,2))+","+str(round(process_cpu_energy,2))+","+str(round(process_network_energy,2))+","+str(round(total_w,2))+","+str(round(total_mwh,2))+"\n")
                 i+=1    
             # Termina tcpdump
             tcpdump_process.terminate()
