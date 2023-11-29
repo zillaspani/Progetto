@@ -11,3 +11,5 @@ CA/
 *.req
 *.pub
 *.crt
+*.pcap
+*.csv
