@@ -3,12 +3,10 @@ import sys
 import psutil
 import time
 import os
-from scapy.utils import wrpcap
-from scapy.all import sniff
+import progressbar
 
 interval=5
-number_of_packets=1
-number_of_cpu=1
+number_of_cpu=30
 interface="lo"
 
 def get_process_pid(process_name):
@@ -16,9 +14,8 @@ def get_process_pid(process_name):
         if(process.name() == process_name):
             return process.pid
 
-print(get_process_pid('sensore0'))
-
 def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
+    bar = progressbar.ProgressBar(maxval=number_of_cpu,widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     try:
         os.remove(process_name+".csv",)
     except:
@@ -31,41 +28,39 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
 
         
     with open(process_name+".csv", "x") as CSV:
-        CSV.write("TIME,CPU,RAM, \n")
+        CSV.write("TIME,CPU,RAM,CPU_W,IF_WLAN_W,TOT_W \n")
         process_pid = get_process_pid(process_name)
         process = psutil.Process(process_pid)
-        print(process.connections()[0].laddr)
-        print(process.name())
+        print("Start logging on "+process_name)
         process.cpu_percent()
-        test_data = []
         conn=process.connections()[0].laddr
-        conn1=process.connections()[0].raddr
+        
                
         try:
-            command = ["tcpdump","-v", "-ni", interface, "-s0", "-w", process_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]),"or","host",conn1[0], "and","udp", "port",str(conn1[1]) ]
+            command = ["sudo","tcpdump","-ni", interface, "-s0", "-w", process_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]) ]
             tcpdump_process = subprocess.Popen(command)
+            
             time_s=time.time()
             i = 0
+            bar.start()
             while(i<maximum):
-               
+                time_start=time.time()
+                bar.update(i)
+                packets_counter_old=psutil.net_io_counters(pernic=True)[interface]
                 process_cpu = process.cpu_percent(interval)
+                
                 process_ram = process.memory_percent()
-                print("CPU%:", process_cpu)
-                print("MEM%:", process_ram)
-                act=time.time()-time_s
-                CSV.write(str(round(act,2))+","+str(process_cpu)+","+str(round(process_ram,2))+",\n")
-                i+=1
-                test_data.append(process_cpu)
-            print(sum(test_data)/len(test_data))
-                  
-            
-            
-            # Attende la durata specificata
-            time.sleep(2)
-
+                packets_counter=psutil.net_io_counters(pernic=True)[interface]
+                delta=time.time()-time_start
+                process_cpu_energy=1.5778+0.181*process_cpu
+                packets_total=packets_counter[0]+packets_counter[1]-packets_counter_old[0]-packets_counter_old[1]
+                packet_rate=packets_total/delta*pow(10,-6)
+                process_network_energy=0.942+0.064+4.813*pow(10,-3)*packet_rate
+                CSV.write(str(round(time.time()-time_s,2))+","+str(process_cpu)+","+str(round(process_ram,2))+","+str(round(process_cpu_energy,2))+","+str(round(process_network_energy,2))+","+str(round(process_cpu_energy+process_network_energy,2))+"\n")
+                i+=1    
             # Termina tcpdump
             tcpdump_process.terminate()
-                     
+            bar.finish()         
         except KeyboardInterrupt as ki:
             CSV.close()
             print('Fine')
