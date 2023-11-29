@@ -267,6 +267,7 @@ class Server():
             ritorna il campo an cui appartiene il sensore/attuatore
         '''
         try:
+            
             campo=self.address[ip]
         except KeyError as e:
             logging.error("Ip errato/non in config")

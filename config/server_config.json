@@ -39,7 +39,7 @@
       "sensori": [
         {
           "name": "sensore0",
-          "ip": "127.0.0.2",
+          "ip": "127.0.0.1",
           "psk": "sens0"
         },
         {
@@ -51,7 +51,7 @@
       "attuatori": [
         {
           "name": "attuatore0",
-          "ip": "127.0.0.1",
+          "ip": "127.0.0.2",
           "psk": "actu0"
         },
         {
