@@ -1,9 +1,8 @@
 import logging
 import json
 import random
+import subprocess
 import time
-import psutil
-import threading
 import setproctitle
 
 class Sensore:

@@ -47,20 +47,22 @@ class SensoreAiocoap(Sensore):
        
 
 def main():
+    start_time=time.time()
     sensore= SensoreAiocoap()
     logging.info("iter="+str(sensore.max_iter))  
     try:
         if  sensore.mode=="loop":
-            iter=0
+            #iter=0
             loop=asyncio.get_event_loop()
             while True:
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
                 loop.run_until_complete(sensore.data_request())
+                behavioral(start_time)
                 #fine metodi di routine
-                iter=iter+1
-                if iter == sensore.max_iter:
-                    exit("Max iters reached")
+                #iter=iter+1
+                #if iter == sensore.max_iter:
+                #    exit("Max iters reached")
         else:
             logging.info("Console mode:")
             logging.info("-1 DataRequest\n-0 Exit")
@@ -81,6 +83,16 @@ def run_command(sensore,cmd):
         exit("Bye")
     else:
         logging.info("Comando non valido, repeat")
+
+def behavioral(start_time):
+    END_TEST_M=3#durata in minuti
+    now_time=time.time()
+    delta=now_time-start_time
+    SECONDS=60
+    END_TEST=END_TEST_M*SECONDS
+    if delta > END_TEST:
+        print("Test done, bye")
+        exit()
 
 
 if __name__ == "__main__":

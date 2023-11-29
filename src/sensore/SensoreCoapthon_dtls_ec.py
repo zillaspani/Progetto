@@ -1,4 +1,3 @@
-import subprocess
 import sys
 import time
 from coapthon import defines
@@ -14,16 +13,14 @@ import logging
 import json
 from Sensore import Sensore
 
-proc_name="TEST"#Inserisci qui per il nome la tipologia di run
-cipher_h='ECDHE-RSA-AES256-GCM-SHA384'
-cipher_l='ECDHE-RSA-AES128-GCM-SHA256'
+cipher_h='ECDHE-ECDSA-AES256-GCM-SHA384'
+cipher_l='ECDHE-ECDSA-AES128-GCM-SHA256'
 
 def ignore_write():
     return False
 
 def ignore_read():
     return True
-
 
 
 class SensoreCoapthon(Sensore):
@@ -45,7 +42,7 @@ def initClient(cipher):
         _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _sock = wrap_client(_sock,
                     cert_reqs=ssl.CERT_REQUIRED,
-                    ca_certs='../src/certs/ca-cert.pem',
+                    ca_certs='../src/certs/ca-cert_ec.pem',
                     ciphers=cipher,
                     do_handshake_on_connect=True
                     )
@@ -73,8 +70,7 @@ def main():
         logging.error("Sensore non inizializzato")
         client.close()
     '''
-    cipher=cipher_l
-    first_con=False
+    cipher=cipher_h
     #cont=0  
     while True:
 
@@ -103,11 +99,6 @@ def main():
                     cipher=behav
                     break
                 sensore.send_data()
-                if not first_con:
-                    first_con=True
-                    time.sleep(1)
-                    command = ["/usr/bin/x-terminal-emulator","-e","python3","../src/sensore/logger.py",proc_name]
-                    subprocess.Popen(command)
 
         except Exception as ex:
             logging.error(ex)
@@ -125,12 +116,12 @@ def behavioral(start_time):
     TEST_TIME=TEST_TIME_M*SECONDS
     END_TEST=END_TEST_M*SECONDS
     if delta < TEST_TIME:
-        return cipher_l
+        return cipher_h#h
     if delta > END_TEST:
         print("Test done, bye")
         exit()
     if delta > TEST_TIME:
-        return cipher_l
+        return cipher_h
     
     '''
     cont=cont+1
