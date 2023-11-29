@@ -1,0 +1,36 @@
+#!/bin/bash -eu
+
+##############################################################################
+#
+# Generate Certificates for PyDTLS Unit Testing
+#
+# This script is invoked manually (as opposed to by the unit test suite), in
+# order to generate certain certificates that are required to be valid by
+# the unit test suite.
+#
+# This script is not portable: it has been tested on Ubuntu 13.04 only. New
+# certificates are written into the current directory.
+#
+# Copyright 2014 Ray Brown
+#
+##############################################################################
+echo Generating Param...; echo
+openssl genpkey -genparam -algorithm ec -pkeyopt ec_paramgen_curve:P-256 -out dh.param
+
+echo Generating CA...; echo
+DIR=`dirname "$0"`
+#openssl ecparam -genkey -name secp256r1 -out ca.key
+#openssl req -x509 -new -sha512 -nodes -key ca.key -days 7307 -out ca-cert.pem -config "$DIR/openssl_ca.cnf"
+openssl req -config "$DIR/openssl_ca.cnf" -x509 -newkey ec:dh.param -nodes -keyout ca.key -out ca-cert_dhe.pem -days 3650
+
+echo Generating Key...; echo
+echo Generating req...; echo
+# Generate self-signed certificates request and key
+openssl req -config "$DIR/openssl_server.cnf" -newkey ec:dh.param -nodes -keyout server_dhe.key  -out server.req
+
+#sign
+openssl x509 -req -in server.req -CA ca-cert_dhe.pem -CAkey ca.key -CAcreateserial -days 3650 -out server-cert_dhe.pem
+
+cat server_dhe.key server-cert_dhe.pem > keycert_dhe.pem
+
+rm *.req *.srl ca.key
