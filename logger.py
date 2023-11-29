@@ -7,7 +7,7 @@ import progressbar
 
 interval=5
 number_of_cpu=30
-interface="lo"
+interface="lo"#eth0
 mwh_cost=0.2777778
 
 def get_process_pid(process_name):

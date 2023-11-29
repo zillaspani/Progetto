@@ -71,6 +71,7 @@ while true; do
                     2)
                         echo "Hai selezionato Sensore"
                         $TERMINAL -e "$PY_PATH $PATH$SENSORE_PY$VERSION"
+                        
                         ;;
                     3)
                         echo "Hai selezionato Attuatore"
