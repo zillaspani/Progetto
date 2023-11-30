@@ -9,7 +9,7 @@ import json
 import logging
 from aiocoap import *
 from colorama import Fore
-from Sensore import Sensore
+from Attuatore import Attuatore
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256, SHA384
 from Crypto.Util.Padding import pad, unpad
@@ -19,45 +19,49 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Signature import pkcs1_15
 from Crypto.Util.number import getPrime
+#
 
-class SensoreSecureRSA_256_256(Sensore):
-    aes_key= b''
-    hmac_key= b''
-    
-    
-    def encrypt_aes(self, data, key):
+class AttuatoreSecureDH_RSA_128_256(Attuatore):
+    '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
+    aes_key=b''
+    hmac_key=b''
+
+    def check_payload(self, ct, tag, key): 
+        check=self.tag_hmac_sha256(ct, key)
+        if tag!=check:
+            logging.warning("Wrong tag")
+            raise Exception("Wrong tag")
+        return
+
+    def decrypt_aes_easy(self, ct, key):
+        '''metodo in cui ct è una stringa e key invece bytes'''
+        bytes_ct=b64decode(ct)
+        cipher = AES.new(key, AES.MODE_ECB)
+        pt = unpad(cipher.decrypt(bytes_ct), AES.block_size)
+        #return plaintext in string, ma con struttura json
+        return pt.decode()
+
+    def decrypt_aes(self,iv, ct, key):
         '''
-        Metodo che cifra con AES, dove data e key sono in bytes,
-        Va bene sia per chiavi di 16, sia di 32 byte
+        ct e iv inizialmente passati come stringhe
         '''
-        cipher=AES.new(key,AES.MODE_CBC)
-        ct_bytes = cipher.encrypt(pad(data, AES.block_size))
-        iv = b64encode(cipher.iv).decode('utf-8')
-        ct = b64encode(ct_bytes).decode('utf-8')
-        result = json.dumps({'iv':iv, 'ciphertext':ct})
-        '''ritorna una stringa, impostata come json'''
-        return result
-    
-    def digital_signature(self, data, path):
-        private_key = RSA.import_key(open(path).read())
-        hash_object = SHA256.new(data)
-        # Generate the digital signature
-        signature = pkcs1_15.new(private_key).sign(hash_object)
-        #ritorna una stringa
-        signature=b64encode(signature).decode('utf-8')
-        return signature
-    
-    def tag_hmac_sha(self,data, key):
-        '''
-        Semplice metodo per calcolare il tag con HMAC-Sha384, dove data in questo caso è una stringa
-        Va bene sia per chiavi di 16, sia di 32 byte
-        '''
-        h = HMAC.new(key, digestmod=SHA384)
-        h.update(str.encode(data))
-        tag=b64encode(h.digest()).decode('utf-8')
-        #ritorna un tag a stringa
-        return tag
-    
+        bytes_iv=b64decode(iv)
+        bytes_ct=b64decode(ct)
+        cipher = AES.new(key, AES.MODE_CBC, bytes_iv)
+        pt = unpad(cipher.decrypt(bytes_ct), AES.block_size)
+        #return plaintext in string, ma con struttura json
+        return pt.decode()
+        
+    def tag_hmac_sha256(self, data, key):
+            '''
+            Semplice metodo per calcolare il tag con HMAC-Sha256, dove data in questo caso è una stringa
+            '''
+            h = HMAC.new(key, digestmod=SHA256)
+            h.update(str.encode(data))
+            tag=b64encode(h.digest()).decode('utf-8')
+            #ritorna un tag a stringa
+            return tag 
+        
     def private_client_key_decrypt(self, response_string, path_private_key):
         response_json=json.loads(response_string)
         #assegnamo i campi che risulteranno stringhe
@@ -92,7 +96,41 @@ class SensoreSecureRSA_256_256(Sensore):
         payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
         payload=json.dumps(payload_string).encode("utf-8")
         return payload
-            
+        
+    async def state_request(self):
+        '''
+        Invia una richiesta al server per conoscere in quale stato deve essere l'attuatore
+        '''
+        endpoint=self.server_uri+"receive"
+        response=await self.send_get_request(endpoint,None)
+        '''QUI SI GESTISCE'''
+        response_string=json.loads(response.payload.decode())
+        '''
+        aggiunta crittografia'''
+        '''
+        versione con doppia cifratura
+        '''
+        #response_string_easy=decrypt_aes_easy(response_string,self.aes_key)
+        #response_json=json.loads(response_string_easy)
+        
+        '''
+        versione standard
+        '''
+        request_json=json.loads(response_string)
+        ''''''
+        self.check_payload(request_json['ciphertext'], request_json['tag'], self.hmac_key) #OK
+        #request_json['ciphertext'] è una stringa
+        plaintext=self.decrypt_aes(request_json['iv'],request_json['ciphertext'], self.aes_key)
+        response_json=json.loads(plaintext) 
+        if response==None:
+            logging.error("Something went wrong during server request handling")
+        else:
+            if response_json['state']!="trap":
+                self.set_stato=response_json['state']
+                logging.info("State Changed")
+            else:
+                logging.info("State Not Changed")
+                  
     async def send_get_request(self, endpoint,payload):
         '''
         Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
@@ -102,25 +140,24 @@ class SensoreSecureRSA_256_256(Sensore):
             if payload==None:
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint)
             else:
-                request = Message(code=aiocoap.GET, uri=endpoint, payload=payload)
-            logging.info(Fore.GREEN+"Richiesta inviata")
+                request = aiocoap.Message(code=aiocoap.GET, uri=endpoint,payload=payload)
+            logging.info("Richiesta inviata")
 
             response = await protocol.request(request).response
-            print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            logging.info("Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                logging.info("Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                logging.info("Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            logging.info(f"Errore nella risposta del server: {response.code}")
             return None
-    
+        
     async def send_post_request(self, endpoint,payload):
         '''
         Metodo che invia ad un endpoint una post e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
@@ -128,47 +165,29 @@ class SensoreSecureRSA_256_256(Sensore):
         try:
             protocol = await aiocoap.Context.create_client_context()
             request = Message(code=aiocoap.POST, uri=endpoint, payload=payload)
-            logging.info(Fore.GREEN+"Richiesta inviata")
+            logging.info("Richiesta inviata")
 
             response = await protocol.request(request).response
-            print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
+            logging.info("Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
+                logging.info("Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
+                logging.info("Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
+            logging.info(f"Errore nella risposta del server: {response.code}")
             return None 
     
-    async def data_request(self):
-        data=self.get_field_value()
-        endpoint=self.server_uri+"data"
-        data=json.dumps(data).encode("utf-8")
-        ct =json.loads(self.encrypt_aes(data, self.aes_key))
-        #path="./src/sensore/keys/private_sensore.pem"
-        #signature=self.digital_signature(data,path)
-        tag= self.tag_hmac_sha(ct['ciphertext'], self.hmac_key)
-        result=json.dumps({'iv':ct['iv'], 'ciphertext':ct['ciphertext'], 'tag':tag})
-        
-        payload=json.dumps(result).encode("utf-8")
-        
-        response=await self.send_get_request(endpoint,payload=payload)
-    
-        if response==None:
-            logging.error("Something went wrong during server request handling")
-       
     async def handshake(self):
-        public_key = RSA.import_key(open("../src/sensore/keys/public_sensore.pem").read())
-        private_key = RSA.import_key(open("../src/sensore/keys/private_sensore.pem").read())
+        public_key = RSA.import_key(open("../src/attuatore/keys/public_attuatore.pem").read())
+        private_key = RSA.import_key(open("../src/attuatore/keys/private_attuatore.pem").read())
         endpoint=self.server_uri+"handshake"
         signature_byte = pkcs1_15.new(private_key).sign(SHA256.new(public_key.export_key('PEM')))
-        encrypted_public_key_byte = self.public_server_key_encrypt(public_key.export_key("PEM"), "../src/sensore/keys/public_server.pem")
+        encrypted_public_key_byte = self.public_server_key_encrypt(public_key.export_key("PEM"), "../src/attuatore/keys/public_server.pem")
         signature_str= b64encode(signature_byte).decode('utf-8')
         epk_str = b64encode(encrypted_public_key_byte).decode('utf-8')
         result= json.dumps({'encrypted_key':epk_str, 'signature':signature_str})
@@ -211,53 +230,42 @@ class SensoreSecureRSA_256_256(Sensore):
         if response==None:
             logging.error("Something went wrong during server request handling")
 
-        
-        
 def main():
-    sensore= SensoreSecureRSA_256_256()
-    #sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
-    print(sensore.max_iter)
-    print(sensore.mode)   
+    attuatore= AttuatoreSecureDH_RSA_128_256()
+    logging.info("iter="+str(attuatore.max_iter))
+  
     try:
-        if  sensore.mode=="loop":
+        if  attuatore.mode=="loop":
             iter=0
             loop=asyncio.get_event_loop()
-            loop.run_until_complete(sensore.handshake())
+            loop.run_until_complete(attuatore.handshake())
             while True:
-                time.sleep(sensore.time_unit)
+                time.sleep(attuatore.time_unit)
                 #Inserire qui i metodi di routine
-                loop.run_until_complete(sensore.data_request())
-                #time.sleep(sensore.time_interval)
-                #loop.run_until_complete(sensore.health_request())
-
+                loop.run_until_complete(attuatore.state_request())
                 #fine metodi di routine
                 iter=iter+1
-                if iter == sensore.max_iter:
+                if iter == attuatore.max_iter:
                     exit("Max iters reached")
         else:
-            print("Console mode:")
-            print("-1 DataRequest\n-2 AL MOMENTO NIENTE\n-0 Exit")
+            logging.info("Console mode:")
+            logging.info("-1 StateRequest\n-0 Exit")
             while True:
-                run_command(sensore,input(">"))
+                run_command(attuatore,input(">"))
 
     except Exception as ex:
         logging.error(ex)
-        logging.error("Sensor cannot be instantiated")
+        logging.error("Actuator cannot be instantiated")
         exit()
 
-
-def run_command(sensore,cmd):
+def run_command(attuatore,cmd):
     loop=asyncio.get_event_loop()
     if cmd == '1':
-        loop.run_until_complete(sensore.data_request())
-    elif cmd == '2':
-        print("CIAO PINO QUI NON ABBIAMO METODO")
+        loop.run_until_complete(attuatore.state_request())
     elif cmd == '0':
         exit("Bye")
     else:
-        print("Comando non valido, repeat")
-
+        logging.info("Comando non valido, repeat")
 
 if __name__ == "__main__":
     asyncio.run(main())
-    

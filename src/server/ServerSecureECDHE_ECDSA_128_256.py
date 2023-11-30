@@ -21,6 +21,8 @@ from Crypto.Util.number import getPrime
 from Crypto.PublicKey import ECC
 from Crypto.Hash import SHAKE128
 from Crypto.Protocol.DH import key_agreement
+from Crypto.Signature import DSS
+
 keys={}
 
 
@@ -103,7 +105,7 @@ def tag_hmac_sha(data, key):
         '''
         Semplice metodo per calcolare il tag con HMAC-Sha384, dove data in questo caso è una stringa
         '''
-        h = HMAC.new(key, digestmod=SHA384)
+        h = HMAC.new(key, digestmod=SHA256)
         h.update(str.encode(data))
         tag=b64encode(h.digest()).decode('utf-8')
         #ritorna un tag a stringa
@@ -215,9 +217,20 @@ class Handshake(resource.Resource):
     def add_keys(self,ip, aes, hmac):
         keys[ip]={'aes_key': aes, 'hmac_key':hmac}
     
-    def kdf(self,x):
+    def kdf32(self,x):
         return SHAKE128.new(x).read(32)
+    def kdf16(self,x):
+        return SHAKE128.new(x).read(16)
     
+    def authentication_check(self, message, client_public_key_aes,signature):
+        h = SHA256.new(message)
+        verifier = DSS.new(client_public_key_aes, 'fips-186-3')
+        try:
+            verifier.verify(h, signature)
+            print("Signature is valid.")
+        except (ValueError, TypeError):
+         raise Exception("Wrong signature")
+
     async def render_get(self,request):
         try:    
             request_string=json.loads(request.payload.decode())
@@ -232,16 +245,24 @@ class Handshake(resource.Resource):
             server_private_key_aes = ECC.generate(curve='p256')
             server_public_key_aes = server_private_key_aes.public_key()
             client_pubblic_key_aes = ECC.import_key(client_public_key_byte_aes)
-            session_key_aes = key_agreement(static_priv=server_private_key_aes, static_pub=client_pubblic_key_aes, kdf=self.kdf)
+            session_key_aes = key_agreement(static_priv=server_private_key_aes, static_pub=client_pubblic_key_aes, kdf=self.kdf16)
             
             #hmac
             server_private_key_hmac = ECC.generate(curve='p256')
             server_public_key_hmac= server_private_key_hmac.public_key()
             client_pubblic_key_hmac = ECC.import_key(client_public_key_byte_hmac)
+            
+            #authentication check
+            message_str=request_json['message']
+            message=b64decode(message_str)
+            signature_str=request_json['signature']
+            signature=b64decode(signature_str)
+            self.authentication_check(message, client_pubblic_key_aes,signature)
 
-            session_key_hmac = key_agreement(static_priv=server_private_key_hmac, static_pub=client_pubblic_key_hmac, kdf=self.kdf)
+            session_key_hmac = key_agreement(static_priv=server_private_key_hmac, static_pub=client_pubblic_key_hmac, kdf=self.kdf32)
             
             ip=self.server.address_parser(request.remote.hostinfo)['address']
+
             self.add_keys(ip,session_key_aes,session_key_hmac)
 
             key_bytes_aes = server_public_key_aes.export_key(format='DER', compress=False)

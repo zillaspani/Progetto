@@ -22,9 +22,11 @@ from Crypto.Util.number import getPrime
 from Crypto.Hash import SHAKE128
 from Crypto.Protocol.DH import key_agreement
 from Crypto.PublicKey import ECC
+from Crypto.Signature import DSS
+
 #
 
-class AttuatoreSecureECC_256_256(Attuatore):
+class AttuatoreSecureECDHE_ECDSA_256_384(Attuatore):
     '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
     aes_key=b''
     hmac_key=b''
@@ -204,7 +206,15 @@ class AttuatoreSecureECC_256_256(Attuatore):
         key_bytes_hmac = client_public_key_hmac.export_key(format='DER', compress=False)
         key_string_hmac=b64encode(key_bytes_hmac).decode("utf-8")
         
-        result=json.dumps({'aes':key_string_aes, 'hmac':key_string_hmac})
+        message = b'Authentication Check'
+        h = SHA256.new(message)
+        signer = DSS.new(client_private_key_aes, 'fips-186-3')
+        signature = signer.sign(h)
+
+        message_str=b64encode(message).decode("utf-8")
+        signature_str=b64encode(signature).decode("utf-8")
+        
+        result=json.dumps({'aes':key_string_aes, 'hmac':key_string_hmac, 'message':message_str, 'signature':signature_str})
         payload=json.dumps(result).encode("utf-8")
         
         response=await self.send_get_request(endpoint,payload=payload)
@@ -238,7 +248,7 @@ class AttuatoreSecureECC_256_256(Attuatore):
         
 
 def main():
-    attuatore= AttuatoreSecureECC_256_256()
+    attuatore= AttuatoreSecureECDHE_ECDSA_256_384()
     logging.info("iter="+str(attuatore.max_iter))
   
     try:

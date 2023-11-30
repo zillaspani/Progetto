@@ -16,14 +16,11 @@ from Crypto.Util.Padding import pad, unpad
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.PublicKey import ECC
+from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Signature import pkcs1_15
 from Crypto.Util.number import getPrime
-from Crypto.Hash import SHAKE128
-from Crypto.Protocol.DH import key_agreement
 
-
-class SensoreSecureRSA_256_256(Sensore):
+class SensoreSecureDH_RSA_256_384(Sensore):
     aes_key= b''
     hmac_key= b''
     
@@ -95,10 +92,7 @@ class SensoreSecureRSA_256_256(Sensore):
         payload_string= json.dumps({'enc_session_key':enc_session_key, 'tag':tag, 'ciphertext':ct, 'nonce':b64encode(cipher_aes.nonce).decode('utf-8')})
         payload=json.dumps(payload_string).encode("utf-8")
         return payload
-    
-    def kdf(self,x):
-        return SHAKE128.new(x).read(32)
-             
+            
     async def send_get_request(self, endpoint,payload):
         '''
         Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
@@ -168,58 +162,9 @@ class SensoreSecureRSA_256_256(Sensore):
     
         if response==None:
             logging.error("Something went wrong during server request handling")
-    
-    
+       
     async def handshake(self):
-        endpoint=self.server_uri+"handshake"
-        
-        #per aes
-        client_private_key_aes = ECC.generate(curve='P-256')
-        client_public_key_aes = client_private_key_aes.public_key()
-        #per hmac
-        client_private_key_hmac = ECC.generate(curve='P-256')
-        client_public_key_hmac = client_private_key_hmac.public_key()
-        
-        key_bytes_aes = client_public_key_aes.export_key(format='DER', compress=False)
-        key_string_aes=b64encode(key_bytes_aes).decode("utf-8")
-        
-        key_bytes_hmac = client_public_key_hmac.export_key(format='DER', compress=False)
-        key_string_hmac=b64encode(key_bytes_hmac).decode("utf-8")
-        
-        result=json.dumps({'aes':key_string_aes, 'hmac':key_string_hmac})
-        payload=json.dumps(result).encode("utf-8")
-        
-        response=await self.send_get_request(endpoint,payload=payload)
-        response_string=json.loads(response.payload.decode())
-        response_json=json.loads(response_string)
-        
-        server_public_key_str_aes=response_json['aes'] 
-        server_public_key_byte_aes=b64decode(server_public_key_str_aes)
-        
-        server_public_key_str_hmac=response_json['hmac'] 
-        server_public_key_byte_hmac=b64decode(server_public_key_str_hmac)
-        
-        server_pubblic_key_aes = ECC.import_key( server_public_key_byte_aes)
-        
-        session_key_aes = key_agreement(static_priv=client_private_key_aes,
-                                        static_pub=server_pubblic_key_aes,
-                                        kdf=self.kdf)
-        
-        server_pubblic_key_hmac = ECC.import_key( server_public_key_byte_hmac)
-        
-        session_key_hmac = key_agreement(static_priv=client_private_key_hmac,
-                                        static_pub=server_pubblic_key_hmac,
-                                        kdf=self.kdf)
-        self.aes_key= session_key_aes
-        self.hmac_key=session_key_hmac
-        
-        logging.info("Handshake completato correttamente, calcolo delle chiavi per AES e HMAC completato")
-        if response==None:
-            logging.error("Something went wrong during server request handling")
-
-
-        
-        '''public_key = RSA.import_key(open("../src/sensore/keys/public_sensore.pem").read())
+        public_key = RSA.import_key(open("../src/sensore/keys/public_sensore.pem").read())
         private_key = RSA.import_key(open("../src/sensore/keys/private_sensore.pem").read())
         endpoint=self.server_uri+"handshake"
         signature_byte = pkcs1_15.new(private_key).sign(SHA256.new(public_key.export_key('PEM')))
@@ -265,12 +210,11 @@ class SensoreSecureRSA_256_256(Sensore):
         logging.info("Handshake completato correttamente, calcolo delle chiavi per AES e HMAC completato")
         if response==None:
             logging.error("Something went wrong during server request handling")
-        '''
 
         
         
 def main():
-    sensore= SensoreSecureRSA_256_256()
+    sensore= SensoreSecureDH_RSA_256_384()
     #sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
     print(sensore.max_iter)
     print(sensore.mode)   

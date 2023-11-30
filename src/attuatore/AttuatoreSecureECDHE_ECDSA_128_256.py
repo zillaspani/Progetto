@@ -19,9 +19,14 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.Signature import pkcs1_15
 from Crypto.Util.number import getPrime
+from Crypto.Hash import SHAKE128
+from Crypto.Protocol.DH import key_agreement
+from Crypto.PublicKey import ECC
+from Crypto.Signature import DSS
+
 #
 
-class AttuatoreSecureRSA_256_256(Attuatore):
+class AttuatoreSecureECDHE_ECDSA_128_256(Attuatore):
     '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
     aes_key=b''
     hmac_key=b''
@@ -56,12 +61,19 @@ class AttuatoreSecureRSA_256_256(Attuatore):
             '''
             Semplice metodo per calcolare il tag con HMAC-Sha256, dove data in questo caso è una stringa
             '''
-            h = HMAC.new(key, digestmod=SHA384)
+            h = HMAC.new(key, digestmod=SHA256)
             h.update(str.encode(data))
             tag=b64encode(h.digest()).decode('utf-8')
             #ritorna un tag a stringa
             return tag 
         
+    def kdf16(self,x):
+        return SHAKE128.new(x).read(16)
+    
+    def kdf32(self,x):
+        return SHAKE128.new(x).read(32)
+    
+    
     def private_client_key_decrypt(self, response_string, path_private_key):
         response_json=json.loads(response_string)
         #assegnamo i campi che risulteranno stringhe
@@ -183,55 +195,64 @@ class AttuatoreSecureRSA_256_256(Attuatore):
             return None 
     
     async def handshake(self):
-        public_key = RSA.import_key(open("../src/attuatore/keys/public_attuatore.pem").read())
-        private_key = RSA.import_key(open("../src/attuatore/keys/private_attuatore.pem").read())
         endpoint=self.server_uri+"handshake"
-        signature_byte = pkcs1_15.new(private_key).sign(SHA256.new(public_key.export_key('PEM')))
-        encrypted_public_key_byte = self.public_server_key_encrypt(public_key.export_key("PEM"), "../src/attuatore/keys/public_server.pem")
-        signature_str= b64encode(signature_byte).decode('utf-8')
-        epk_str = b64encode(encrypted_public_key_byte).decode('utf-8')
-        result= json.dumps({'encrypted_key':epk_str, 'signature':signature_str})
+        
+        #per aes
+        client_private_key_aes = ECC.generate(curve='P-256')
+        client_public_key_aes = client_private_key_aes.public_key()
+        #per hmac
+        client_private_key_hmac = ECC.generate(curve='P-256')
+        client_public_key_hmac = client_private_key_hmac.public_key()
+        
+        key_bytes_aes = client_public_key_aes.export_key(format='DER', compress=False)
+        key_string_aes=b64encode(key_bytes_aes).decode("utf-8")
+        
+        key_bytes_hmac = client_public_key_hmac.export_key(format='DER', compress=False)
+        key_string_hmac=b64encode(key_bytes_hmac).decode("utf-8")
+        
+        message = b'Authentication Check'
+        h = SHA256.new(message)
+        signer = DSS.new(client_private_key_aes, 'fips-186-3')
+        signature = signer.sign(h)
+
+        message_str=b64encode(message).decode("utf-8")
+        signature_str=b64encode(signature).decode("utf-8")
+        
+        result=json.dumps({'aes':key_string_aes, 'hmac':key_string_hmac, 'message':message_str, 'signature':signature_str})
         payload=json.dumps(result).encode("utf-8")
+        
         response=await self.send_get_request(endpoint,payload=payload)
-        #Ricevi la chiave pubblica Diffie-Hellman del server sia per aes che per h_mac
         response_string=json.loads(response.payload.decode())
         response_json=json.loads(response_string)
-        #lavoro per aes
-        p_aes=int(response_json['p_aes'])    
-        key_string_aes=response_json['public_key_string_aes']
-        key_bytes_aes=b64decode(key_string_aes)
-        server_dh_key_aes = int.from_bytes(key_bytes_aes, 'big')
-        g = 2
-        private_dh_key_aes = get_random_bytes(32)
-        public_dh_key_aes = pow(g, int.from_bytes(private_dh_key_aes, 'big'), p_aes)
-        payload_to_byte_aes=b64encode(public_dh_key_aes.to_bytes((public_dh_key_aes.bit_length() + 7) // 8, 'big')).decode()
-        #lavoro per hmac
-        p_hmac=int(response_json['p_hmac'])    
-        key_string_hmac=response_json['public_key_string_hmac']
-        key_bytes_hmac=b64decode(key_string_hmac)
-        server_dh_key_hmac = int.from_bytes(key_bytes_hmac, 'big')
-        g = 2
-        private_dh_key_hmac = get_random_bytes(32)
-        public_dh_key_hmac = pow(g, int.from_bytes(private_dh_key_hmac, 'big'), p_hmac)
-        payload_to_byte_hmac=b64encode(public_dh_key_hmac.to_bytes((public_dh_key_hmac.bit_length() + 7) // 8, 'big')).decode()
-        #ora si invia
-        result=json.dumps({'aes':payload_to_byte_aes, 'hmac':payload_to_byte_hmac})
-        payload=json.dumps(result).encode("utf-8")
-        response = await self.send_post_request(endpoint, payload=payload)
-        # Calcola le chiavi segrete condivise utilizzando Diffie-Hellman
-        shared_secret_aes = pow(server_dh_key_aes, int.from_bytes(private_dh_key_aes, 'big'), p_aes)
-        shared_secret_bytes_aes = shared_secret_aes.to_bytes((shared_secret_aes.bit_length() + 7) // 8, 'big')
-        print(sys.getsizeof(shared_secret_bytes_aes))
-        shared_secret_hmac = pow(server_dh_key_hmac, int.from_bytes(private_dh_key_hmac, 'big'), p_hmac)
-        shared_secret_bytes_hmac = shared_secret_hmac.to_bytes((shared_secret_hmac.bit_length() + 7) // 8, 'big')
-        self.aes_key= shared_secret_bytes_aes
-        self.hmac_key=shared_secret_bytes_hmac
+        
+        server_public_key_str_aes=response_json['aes'] 
+        server_public_key_byte_aes=b64decode(server_public_key_str_aes)
+        
+        server_public_key_str_hmac=response_json['hmac'] 
+        server_public_key_byte_hmac=b64decode(server_public_key_str_hmac)
+        
+        server_pubblic_key_aes = ECC.import_key( server_public_key_byte_aes)
+        
+        session_key_aes = key_agreement(static_priv=client_private_key_aes,
+                                        static_pub=server_pubblic_key_aes,
+                                        kdf=self.kdf16)
+        
+        server_pubblic_key_hmac = ECC.import_key( server_public_key_byte_hmac)
+        
+        session_key_hmac = key_agreement(static_priv=client_private_key_hmac,
+                                        static_pub=server_pubblic_key_hmac,
+                                        kdf=self.kdf32)
+        self.aes_key= session_key_aes
+        self.hmac_key=session_key_hmac
+        
         logging.info("Handshake completato correttamente, calcolo delle chiavi per AES e HMAC completato")
         if response==None:
             logging.error("Something went wrong during server request handling")
 
+        
+
 def main():
-    attuatore= AttuatoreSecureRSA_256_256()
+    attuatore= AttuatoreSecureECDHE_ECDSA_128_256()
     logging.info("iter="+str(attuatore.max_iter))
   
     try:

@@ -1,5 +1,6 @@
 from base64 import b64decode, b64encode
 import os
+import sys
 import time
 import psutil
 import aiocoap
@@ -7,27 +8,31 @@ import asyncio
 import json
 import logging
 from aiocoap import *
+from colorama import Fore
 from Sensore import Sensore
 from Crypto.Cipher import AES
-from Crypto.Hash import HMAC, SHA256
+from Crypto.Hash import HMAC, SHA256, SHA384
 from Crypto.Util.Padding import pad, unpad
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.PublicKey import ECC
+from Crypto.Signature import pkcs1_15
+from Crypto.Util.number import getPrime
+from Crypto.Hash import SHAKE128
+from Crypto.Protocol.DH import key_agreement
+from Crypto.Signature import DSS
 
-class SensoreSecure(Sensore):
-    '''chiavi inizialmente messe qui per prova, 16 byte per AES, 32 per HMAC, da spostare il un file di configurazione poi'''
+
+class SensoreSecureECDHE_ECDSA_256_384(Sensore):
+    aes_key= b''
+    hmac_key= b''
     
     
-    def encrypt_aes_easy(self, data, key):
-        cipher=AES.new(key,AES.MODE_ECB)
-        ct_bytes = cipher.encrypt(pad(data, AES.block_size))
-        result=b64encode(ct_bytes).decode('utf-8')
-        return result
-        
     def encrypt_aes(self, data, key):
         '''
-        Metodo che cifra con AES, dove data e key sono in bytes 
+        Metodo che cifra con AES, dove data e key sono in bytes,
+        Va bene sia per chiavi di 16, sia di 32 byte
         '''
         cipher=AES.new(key,AES.MODE_CBC)
         ct_bytes = cipher.encrypt(pad(data, AES.block_size))
@@ -37,12 +42,21 @@ class SensoreSecure(Sensore):
         '''ritorna una stringa, impostata come json'''
         return result
     
+    def digital_signature(self, data, path):
+        private_key = RSA.import_key(open(path).read())
+        hash_object = SHA256.new(data)
+        # Generate the digital signature
+        signature = pkcs1_15.new(private_key).sign(hash_object)
+        #ritorna una stringa
+        signature=b64encode(signature).decode('utf-8')
+        return signature
     
-    def tag_hmac_sha256(self,data, key):
+    def tag_hmac_sha(self,data, key):
         '''
-        Semplice metodo per calcolare il tag con HMAC-Sha256, dove data in questo caso è una stringa
+        Semplice metodo per calcolare il tag con HMAC-Sha384, dove data in questo caso è una stringa
+        Va bene sia per chiavi di 16, sia di 32 byte
         '''
-        h = HMAC.new(key, digestmod=SHA256)
+        h = HMAC.new(key, digestmod=SHA384)
         h.update(str.encode(data))
         tag=b64encode(h.digest()).decode('utf-8')
         #ritorna un tag a stringa
@@ -83,35 +97,9 @@ class SensoreSecure(Sensore):
         payload=json.dumps(payload_string).encode("utf-8")
         return payload
     
-    async def authentication_client(self):
-        endpoint=self.server_uri+"authentication"
-        '''
-        TO DO
-        hello_str già pensato per inviare al server un json da poter ricercare in config.json del server dove
-        verranno aggiunti le chiavi pubbliche dei sensori e attuatori
-        '''
-        hello_str= json.dumps({'type':'sensors'})
-        payload=json.dumps(hello_str).encode("utf-8") #byte
-        response_hello=await self.send_get_request(endpoint,payload=payload)
-        
-        #il client ha ricevuto un messaggio dal server contenente la challenge
-        response_string=json.loads(response_hello.payload.decode())
-        secret_byte=self.private_client_key_decrypt(response_string,"../src/sensore/keys/private_sensore.pem")
-        
-
-        #ora si cifra con la chiave pubblica del server e si manda la risposta
-        payload=self.public_server_key_encrypt(secret_byte,"../src/sensore/keys/public_server.pem")
-       
-        response_challenge=await self.send_post_request(endpoint,payload=payload)
-        #il client ha ricevuto le chiavi e se le prende
-        response_string=json.loads(response_challenge.payload.decode())
-        secret_byte=self.private_client_key_decrypt(response_string,"../src/sensore/keys/private_sensore.pem")
-        
-        secret_json=json.loads(secret_byte.decode())
-        self.aes_key= b64decode(secret_json["aes"])
-        self.hmac_key=b64decode(secret_json["hmac"])
-        print("Autenticazione riuscita, chiavi correttamente memorizzate")
-        
+    def kdf(self,x):
+        return SHAKE128.new(x).read(32)
+             
     async def send_get_request(self, endpoint,payload):
         '''
         Metodo che invia ad un endpoint una get con payload opzionale e restituisce la risposta alla richiesta, restiutisce None in caso di insuccesso
@@ -122,22 +110,22 @@ class SensoreSecure(Sensore):
                 request = aiocoap.Message(code=aiocoap.GET, uri=endpoint)
             else:
                 request = Message(code=aiocoap.GET, uri=endpoint, payload=payload)
-            logging.info("Richiesta inviata")
+            logging.info(Fore.GREEN+"Richiesta inviata")
 
             response = await protocol.request(request).response
             print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info("Richiesta al server CoAP scaduta")
+            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info("Il server ha inviato una risposta valida")
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info("Il server ha inviato una risposta non valida")
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(f"Errore nella risposta del server: {response.code}")
+            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
             return None
     
     async def send_post_request(self, endpoint,payload):
@@ -147,22 +135,22 @@ class SensoreSecure(Sensore):
         try:
             protocol = await aiocoap.Context.create_client_context()
             request = Message(code=aiocoap.POST, uri=endpoint, payload=payload)
-            logging.info("Richiesta inviata")
+            logging.info(Fore.GREEN+"Richiesta inviata")
 
             response = await protocol.request(request).response
             print(response)
         except aiocoap.error.RequestTimedOut:
-            logging.info("Richiesta al server CoAP scaduta")
+            logging.info(Fore.GREEN+"Richiesta al server CoAP scaduta")
             return None
         if response.code.is_successful():
             try:
-                logging.info("Il server ha inviato una risposta valida")
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta valida")
                 return response
             except ValueError:
-                logging.info("Il server ha inviato una risposta non valida")
+                logging.info(Fore.GREEN+"Il server ha inviato una risposta non valida")
                 return None
         else:
-            logging.info(f"Errore nella risposta del server: {response.code}")
+            logging.info(Fore.GREEN+f"Errore nella risposta del server: {response.code}")
             return None 
     
     async def data_request(self):
@@ -170,35 +158,85 @@ class SensoreSecure(Sensore):
         endpoint=self.server_uri+"data"
         data=json.dumps(data).encode("utf-8")
         ct =json.loads(self.encrypt_aes(data, self.aes_key))
-        tag= self.tag_hmac_sha256(ct['ciphertext'], self.hmac_key)
+        #path="./src/sensore/keys/private_sensore.pem"
+        #signature=self.digital_signature(data,path)
+        tag= self.tag_hmac_sha(ct['ciphertext'], self.hmac_key)
         result=json.dumps({'iv':ct['iv'], 'ciphertext':ct['ciphertext'], 'tag':tag})
         
-        #AGGIUNTA QUI
-        '''
-        si usa result se si fa in modo di sniffare in chiaro i campi del json
-        mentre result_cripto per nascondere anche quelli
-        
-        '''
-        #result_cripto=self.encrypt_aes_easy(result.encode(), self.aes_key)
-        #payload=json.dumps(result_cripto).encode("utf-8")
-        
-        ''''''
         payload=json.dumps(result).encode("utf-8")
         
         response=await self.send_get_request(endpoint,payload=payload)
     
         if response==None:
             logging.error("Something went wrong during server request handling")
-       
+    
+    
+    async def handshake(self):
+        endpoint=self.server_uri+"handshake"
+        
+        #per aes
+        client_private_key_aes = ECC.generate(curve='P-256')
+        client_public_key_aes = client_private_key_aes.public_key()
+        #per hmac
+        client_private_key_hmac = ECC.generate(curve='P-256')
+        client_public_key_hmac = client_private_key_hmac.public_key()
+        
+        key_bytes_aes = client_public_key_aes.export_key(format='DER', compress=False)
+        key_string_aes=b64encode(key_bytes_aes).decode("utf-8")
+        
+        key_bytes_hmac = client_public_key_hmac.export_key(format='DER', compress=False)
+        key_string_hmac=b64encode(key_bytes_hmac).decode("utf-8")
+    
+        message = b'Authentication Check'
+        h = SHA256.new(message)
+        signer = DSS.new(client_private_key_aes, 'fips-186-3')
+        signature = signer.sign(h)
 
+        message_str=b64encode(message).decode("utf-8")
+        signature_str=b64encode(signature).decode("utf-8")
+        
+        result=json.dumps({'aes':key_string_aes, 'hmac':key_string_hmac, 'message':message_str, 'signature':signature_str})
+        payload=json.dumps(result).encode("utf-8")
+        
+        response=await self.send_get_request(endpoint,payload=payload)
+        response_string=json.loads(response.payload.decode())
+        response_json=json.loads(response_string)
+        
+        server_public_key_str_aes=response_json['aes'] 
+        server_public_key_byte_aes=b64decode(server_public_key_str_aes)
+        
+        server_public_key_str_hmac=response_json['hmac'] 
+        server_public_key_byte_hmac=b64decode(server_public_key_str_hmac)
+        
+        server_pubblic_key_aes = ECC.import_key( server_public_key_byte_aes)
+        
+        session_key_aes = key_agreement(static_priv=client_private_key_aes,
+                                        static_pub=server_pubblic_key_aes,
+                                        kdf=self.kdf)
+        
+        server_pubblic_key_hmac = ECC.import_key( server_public_key_byte_hmac)
+        
+        session_key_hmac = key_agreement(static_priv=client_private_key_hmac,
+                                        static_pub=server_pubblic_key_hmac,
+                                        kdf=self.kdf)
+        self.aes_key= session_key_aes
+        self.hmac_key=session_key_hmac
+        
+        logging.info("Handshake completato correttamente, calcolo delle chiavi per AES e HMAC completato")
+        if response==None:
+            logging.error("Something went wrong during server request handling")
+        
+        
 def main():
-    sensore= SensoreSecure()
-    logging.info("iter="+str(sensore.max_iter)) 
+    sensore= SensoreSecureECDHE_ECDSA_256_384()
+    #sensore.print_info(os.path.abspath(__file__), psutil.net_if_addrs())
+    print(sensore.max_iter)
+    print(sensore.mode)   
     try:
         if  sensore.mode=="loop":
             iter=0
             loop=asyncio.get_event_loop()
-            loop.run_until_complete(sensore.authentication_client())
+            loop.run_until_complete(sensore.handshake())
             while True:
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
