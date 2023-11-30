@@ -39,7 +39,7 @@ class DataResource(Resource):
             ip=request._source[0]
             self.server.addData(request_json,ip)
             self.code=defines.Codes.CHANGED.number
-            self._sock
+            #self._sock
             return self
         except Exception as ex:
             logging.error("Exception in DataResource ")
@@ -83,7 +83,6 @@ try:
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     _sock = wrap_server(_sock,
-                    #cert_reqs=ssl.CERT_REQUIRED,
                     keyfile='../src/certs/keycert.pem',
                     certfile='../src/certs/keycert.pem',
                     ca_certs='../src/certs/ca-cert.pem',

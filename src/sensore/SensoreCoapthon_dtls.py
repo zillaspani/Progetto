@@ -48,6 +48,7 @@ def initClient(cipher):
         return _sock
 
 def main():
+    start_time=time.time()
     '''
     try:
         sensore= SensoreCoapthon(client=None) 
@@ -69,7 +70,7 @@ def main():
         client.close()
     '''
     cipher='ECDHE-RSA-AES256-GCM-SHA384'
-    cont=0  
+    #cont=0  
     while True:
 
         try:
@@ -87,8 +88,8 @@ def main():
             while True:
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
-                cont,behav=behavioral(cont)
-                print("### Cont: "+str(cont)+" ###")
+                #cont,behav=behavioral(cont)
+                behav=behavioral(start_time)
                 if behav!=cipher:
                     logging.info("#########################################")
                     logging.info("Sensor change ciphersuite")
@@ -105,7 +106,23 @@ def main():
             client.close()
             exit()
 
-def behavioral(cont):
+def behavioral(start_time):
+    TEST_TIME_M=0.5#durata in minuti
+    END_TEST_M=1#durata in minuti
+    now_time=time.time()
+    delta=now_time-start_time
+    SECONDS=60
+    TEST_TIME=TEST_TIME_M*SECONDS
+    END_TEST=END_TEST_M*SECONDS
+    if delta < TEST_TIME:
+        return 'ECDHE-RSA-AES256-GCM-SHA384'
+    if delta > END_TEST:
+        print("Test done, bye")
+        exit()
+    if delta > TEST_TIME:
+        return 'ECDHE-RSA-AES128-GCM-SHA256'
+    
+    '''
     cont=cont+1
     if cont>=10 and cont <=15:
         if cont==15:
@@ -113,7 +130,7 @@ def behavioral(cont):
         return cont,'ECDHE-RSA-AES128-GCM-SHA256'
     if cont<10:
         return cont,'ECDHE-RSA-AES256-GCM-SHA384'
-
+    '''
     
 main()
     
