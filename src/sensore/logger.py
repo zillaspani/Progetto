@@ -15,10 +15,12 @@ def get_process_pid(process_name):
         if(process.name() == process_name):
             return process.pid
 
-def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
+def analyze_ram_and_cpu_of_a_process(process_name,test_name, maximum = number_of_cpu):
+    print(process_name)
+    print(test_name)
     bar = progressbar.ProgressBar(maxval=number_of_cpu,widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     try:
-        os.remove(process_name+".csv",)
+        os.remove(test_name+".csv",)
     except:
         pass
     try:
@@ -28,24 +30,19 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
         pass
 
         
-    with open(process_name+".csv", "x") as CSV:
+    with open(test_name+".csv", "x") as CSV:
         CSV.write("TIME,CPU,RAM,CPU_W,WIFI_UP_W,WIFI_DOWN_W,TOT_W,MWH \n")
         process_pid = get_process_pid(process_name)
         process = psutil.Process(process_pid)
         print("Start logging on "+process_name)
         process.cpu_percent()
         print(process.connections)
-
-        while True:
-            try:    
-                conn=process.connections()[0].laddr
-                break
-            except Exception:
-                pass
+        time.sleep(10)
+        conn=process.connections()[0].laddr
         
                
         try:
-            command = ["sudo","tcpdump","-ni", interface, "-s0", "-w", process_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]) ]
+            command = ["sudo","tcpdump","-ni", interface, "-s0", "-w", test_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]) ]
             tcpdump_process = subprocess.Popen(command)
             
             time_s=time.time()
@@ -80,12 +77,13 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
             
 
 def main():
+    '''
     if len(sys.argv) != 2:
-        analyze_ram_and_cpu_of_a_process('sensore0', maximum = number_of_cpu)
-    else:
-        print("CIAO PINO")
-        print(sys.argv[1])
-        analyze_ram_and_cpu_of_a_process(sys.argv[1], maximum = number_of_cpu)
+        analyze_ram_and_cpu_of_a_process('sensore0',"nope", maximum = number_of_cpu)
+    elif len(sys.argv)==3:
+        analyze_ram_and_cpu_of_a_process(sys.argv[1],sys.argv[2], maximum = number_of_cpu)
+    '''
+    analyze_ram_and_cpu_of_a_process(sys.argv[1],sys.argv[2], maximum = number_of_cpu)    
 main()
 '''
 Se interval è impostato su None:

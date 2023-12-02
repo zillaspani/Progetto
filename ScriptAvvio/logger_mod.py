@@ -3,7 +3,25 @@ import sys
 import psutil
 import time
 import os
-import progressbar
+
+import setproctitle
+#import progressbar
+FILE_PATH = "../src/sensore/"
+
+file_list = [
+    "SensoreAiocoap",
+    "SensoreCoapthon_dtls_ec",
+    "SensoreCoapthon_dtls",
+    "SensoreDTLS",
+    "SensoreSecureChallenge_Response_128_256",
+    "SensoreSecureChallenge_Response_256_384",
+    "SensoreSecureDH_RSA_128_256",
+    "SensoreSecureDH_RSA_256_384",
+    "SensoreSecureECDHE_ECDSA_128_256",
+    "SensoreSecureECDHE_ECDSA_256_384",
+    "SensoreSecureECDHE_RSA_128_256",
+    "SensoreSecureECDHE_RSA_256_384",
+]
 interval=5
 number_of_cpu=30
 interface="lo"#eth0
@@ -14,10 +32,9 @@ def get_process_pid(process_name):
         if(process.name() == process_name):
             return process.pid
 
-def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
-    bar = progressbar.ProgressBar(maxval=number_of_cpu,widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+def analyze_ram_and_cpu_of_a_process(process_name,test_name, maximum = number_of_cpu):
     try:
-        os.remove(process_name+".csv",)
+        os.remove(test_name+".csv",)
     except:
         pass
     try:
@@ -27,7 +44,7 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
         pass
 
         
-    with open(process_name+".csv", "x") as CSV:
+    with open(test_name+".csv", "x") as CSV:
         CSV.write("TIME,CPU,RAM,CPU_W,WIFI_UP_W,WIFI_DOWN_W,TOT_W,MWH \n")
         process_pid = get_process_pid(process_name)
         process = psutil.Process(process_pid)
@@ -38,7 +55,6 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
         print("#########")
         conn=process.connections()[0].laddr
         
-               
         try:
             command = ["sudo","tcpdump","-ni", interface, "-s0", "-w", process_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]) ]
             tcpdump_process = subprocess.Popen(command)
@@ -46,10 +62,8 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
             time_s=time.time()
             i = 0
             total_mwh=0
-            bar.start()
             while(i<maximum):
                 time_start=time.time()
-                bar.update(i)
                 packets_counter_old=psutil.net_io_counters(pernic=True)[interface]
                 process_cpu = process.cpu_percent(interval)
                 process_ram = process.memory_percent()
@@ -67,29 +81,36 @@ def analyze_ram_and_cpu_of_a_process(process_name, maximum = number_of_cpu):
                 CSV.write(str(round(time.time()-time_s,2))+","+str(process_cpu)+","+str(round(process_ram,2))+","+str(round(process_cpu_energy,2))+","+str(round(process_network_energy_up,2))+","+str(round(process_network_energy_down,2))+","+str(round(total_w,2))+","+str(round(total_mwh,2))+"\n")
                 i+=1    
             # Termina tcpdump
-            tcpdump_process.terminate()
-            bar.finish()         
+            tcpdump_process.terminate()       
         except KeyboardInterrupt as ki:
             CSV.close()
             print('Fine')
-            
+
+def print_error():
+    print("Errore: L'argomento deve essere un numero valido.")
+    print("Usage: server.py <int>")
+    for i in range(len(file_list)):
+        print(f"- {i} for {file_list[i]}")            
 
 def main():
-    if len(sys.argv) != 2:
-        analyze_ram_and_cpu_of_a_process('sensore0', maximum = number_of_cpu)
+    if len(sys.argv) == 2:
+        try:
+            number = int(sys.argv[1])
+            if 0 <= number < len(file_list):
+                command = ["python3", FILE_PATH + file_list[number]+".py"]
+                client=subprocess.Popen(command)
+                setproctitle.setproctitle("sensore0")
+                time.sleep(5)
+                analyze_ram_and_cpu_of_a_process("sensore0",file_list[number], maximum = number_of_cpu)
+            else:
+                print_error()
+        except ValueError:
+            print_error()
     else:
-        analyze_ram_and_cpu_of_a_process(sys.argv[1], maximum = number_of_cpu)
-main()
-'''
-Se interval è impostato su None:
-In questo caso, la funzione calcola la percentuale di utilizzo della CPU in un unico momento, fornendo il
- valore corrente dell'utilizzo della CPU. In altre parole, restituirà l'utilizzo della CPU in quel preciso istante in cui viene invocata la funzione.
+        print_error()
+    
 
-Se interval è un valore numerico:
-Quando si specifica un valore numerico per interval (ad esempio 1, 5, o 10), la funzione calcola la percentuale di utilizzo 
-della CPU come media degli ultimi campionamenti effettuati durante l'intervallo di tempo specificato. Questo significa che la funzione
- prenderà una serie di campioni durante l'intervallo specificato e calcolerà la media di tali campioni per restituire l'utilizzo della CPU in quel dato momento.
- 
- cpu_usage = psutil.cpu_percent(interval=5)
-print(cpu_usage)  # Restituirà la media dell'utilizzo della CPU negli ultimi 5 secondi
-'''
+
+
+
+main()

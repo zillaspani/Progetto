@@ -108,8 +108,8 @@ def main():
             exit()
 
 def behavioral(start_time):
-    TEST_TIME_M=1.5#durata in minuti
-    END_TEST_M=3#durata in minuti
+    TEST_TIME_M=0.5#durata in minuti
+    END_TEST_M=0.6 #durata in minuti
     now_time=time.time()
     delta=now_time-start_time
     SECONDS=60
