@@ -13,5 +13,7 @@
     "humidity_lb": 30.0,
     "temperature_ub":30.0,
     "temperature_lb":10.0,
-    "rounding":2
+    "rounding":2,
+    "TEST_TIME_M": 0.5,
+    "END_TEST_M":0.6
 }

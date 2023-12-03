@@ -190,6 +190,7 @@ class SensoreSecureChallenge_Response_128_256(Sensore):
        
 
 def main():
+    start_time=time.time()
     sensore= SensoreSecureChallenge_Response_128_256()
     logging.info("iter="+str(sensore.max_iter)) 
     try:
@@ -203,7 +204,7 @@ def main():
                 loop.run_until_complete(sensore.data_request())
                 #time.sleep(sensore.time_interval)
                 #loop.run_until_complete(sensore.health_request())
-
+                sensore.test(start_time)
                 #fine metodi di routine
                 iter=iter+1
                 if iter == sensore.max_iter:

@@ -4,35 +4,15 @@ import psutil
 import time
 import os
 
-import setproctitle
-#import progressbar
-FILE_PATH = "../src/sensore/"
-
-file_list = [
-    "SensoreAiocoap",
-    "SensoreCoapthon_dtls_ec",
-    "SensoreCoapthon_dtls",
-    "SensoreDTLS",
-    "SensoreSecureChallenge_Response_128_256",
-    "SensoreSecureChallenge_Response_256_384",
-    "SensoreSecureDH_RSA_128_256",
-    "SensoreSecureDH_RSA_256_384",
-    "SensoreSecureECDHE_ECDSA_128_256",
-    "SensoreSecureECDHE_ECDSA_256_384",
-    "SensoreSecureECDHE_RSA_128_256",
-    "SensoreSecureECDHE_RSA_256_384",
-]
 interval=5
-number_of_cpu=30
+number_of_cpu=5
 interface="lo"#eth0
 mwh_cost=0.2777778
 
-def get_process_pid(process_name):
-    for process in [psutil.Process(pid) for pid in psutil.pids()]:
-        if(process.name() == process_name):
-            return process.pid
 
-def analyze_ram_and_cpu_of_a_process(process_name,test_name, maximum = number_of_cpu):
+def analyze_ram_and_cpu_of_a_process(pid,test_name, maximum = number_of_cpu):
+    #print(pid)
+    #print(test_name)
     try:
         os.remove(test_name+".csv",)
     except:
@@ -46,17 +26,17 @@ def analyze_ram_and_cpu_of_a_process(process_name,test_name, maximum = number_of
         
     with open(test_name+".csv", "x") as CSV:
         CSV.write("TIME,CPU,RAM,CPU_W,WIFI_UP_W,WIFI_DOWN_W,TOT_W,MWH \n")
-        process_pid = get_process_pid(process_name)
+        process_pid = int(pid)
         process = psutil.Process(process_pid)
-        print("Start logging on "+process_name)
+        print("Start logging on "+test_name)
         process.cpu_percent()
-        print("#########")
         print(process.connections)
-        print("#########")
+        time.sleep(2)
         conn=process.connections()[0].laddr
         
+               
         try:
-            command = ["sudo","tcpdump","-ni", interface, "-s0", "-w", process_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]) ]
+            command = ["sudo","tcpdump","-ni", interface, "-s0", "-w", test_name+".pcap","host",conn[0], "and","udp", "port",str(conn[1]) ]
             tcpdump_process = subprocess.Popen(command)
             
             time_s=time.time()
@@ -81,36 +61,19 @@ def analyze_ram_and_cpu_of_a_process(process_name,test_name, maximum = number_of
                 CSV.write(str(round(time.time()-time_s,2))+","+str(process_cpu)+","+str(round(process_ram,2))+","+str(round(process_cpu_energy,2))+","+str(round(process_network_energy_up,2))+","+str(round(process_network_energy_down,2))+","+str(round(total_w,2))+","+str(round(total_mwh,2))+"\n")
                 i+=1    
             # Termina tcpdump
-            tcpdump_process.terminate()       
+            tcpdump_process.terminate()
+            print("#########################")     
         except KeyboardInterrupt as ki:
             CSV.close()
             print('Fine')
-
-def print_error():
-    print("Errore: L'argomento deve essere un numero valido.")
-    print("Usage: server.py <int>")
-    for i in range(len(file_list)):
-        print(f"- {i} for {file_list[i]}")            
+            
 
 def main():
-    if len(sys.argv) == 2:
-        try:
-            number = int(sys.argv[1])
-            if 0 <= number < len(file_list):
-                command = ["python3", FILE_PATH + file_list[number]+".py"]
-                client=subprocess.Popen(command)
-                setproctitle.setproctitle("sensore0")
-                time.sleep(5)
-                analyze_ram_and_cpu_of_a_process("sensore0",file_list[number], maximum = number_of_cpu)
-            else:
-                print_error()
-        except ValueError:
-            print_error()
-    else:
-        print_error()
-    
-
-
-
-
+    '''
+    if len(sys.argv) != 2:
+        analyze_ram_and_cpu_of_a_process('sensore0',"nope", maximum = number_of_cpu)
+    elif len(sys.argv)==3:
+        analyze_ram_and_cpu_of_a_process(sys.argv[1],sys.argv[2], maximum = number_of_cpu)
+    '''
+    analyze_ram_and_cpu_of_a_process(sys.argv[1],sys.argv[2], maximum = number_of_cpu)    
 main()

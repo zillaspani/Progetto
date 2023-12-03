@@ -1,6 +1,9 @@
 import subprocess
 import sys
-LOGGER="../src/sensore/logger.py"
+import time
+
+import psutil
+LOGGER="../src/sensore/loggerbypid.py"
 FILE_PATH = "../src/sensore/"
 
 file_list = [
@@ -24,6 +27,12 @@ def print_error():
     for i in range(len(file_list)):
         print(f"- {i} for {file_list[i]}")
 
+def get_process_pid(process_name):
+    for process in [psutil.Process(pid) for pid in psutil.pids()]:
+        if(process.name() == process_name):
+            return process.pid
+
+
 if __name__ == "__main__":
     if len(sys.argv) == 2:
         try:
@@ -31,15 +40,11 @@ if __name__ == "__main__":
             if 0 <= number < len(file_list):
                 command = ["python3", FILE_PATH + file_list[number]+".py"]
                 client=subprocess.Popen(command)
-                command2 = ["python3",LOGGER,"sensore0",file_list[number]]
+                time.sleep(1)
+                pid=get_process_pid("sensore0")
+                print("Pid: "+str(pid))
+                command2 = ["sudo","python3",LOGGER,str(pid),file_list[number]]
                 logger=subprocess.Popen(command2)
-                client.wait()
-                logger.wait()
-                output, error = logger.communicate()
-                print("Logger output:")
-                print(output)
-                print("Logger error:")
-                print(error)
             else:
                 print_error()
         except ValueError:

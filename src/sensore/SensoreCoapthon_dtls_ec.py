@@ -90,7 +90,7 @@ def main():
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
                 #cont,behav=behavioral(cont)
-                behav=behavioral(start_time)
+                behav=behavioral(start_time,sensore.TEST_TIME_M,sensore.END_TEST_M)
                 if behav!=cipher:
                     logging.info("#########################################")
                     logging.info("Sensor change ciphersuite")
@@ -107,31 +107,21 @@ def main():
             client.close()
             exit()
 
-def behavioral(start_time):
-    TEST_TIME_M=0.5#durata in minuti
-    END_TEST_M=0.6 #durata in minuti
+def behavioral(start_time,TEST_TIME_M,END_TEST_M):
+    #TEST_TIME_M durata in minuti
+    #END_TEST_M durata in minuti
     now_time=time.time()
     delta=now_time-start_time
     SECONDS=60
     TEST_TIME=TEST_TIME_M*SECONDS
     END_TEST=END_TEST_M*SECONDS
     if delta < TEST_TIME:
-        return cipher_h#h
+        return cipher_l
     if delta > END_TEST:
         print("Test done, bye")
         exit()
     if delta > TEST_TIME:
-        return cipher_h
-    
-    '''
-    cont=cont+1
-    if cont>=10 and cont <=15:
-        if cont==15:
-            return 0,'ECDHE-RSA-AES128-GCM-SHA256'
-        return cont,'ECDHE-RSA-AES128-GCM-SHA256'
-    if cont<10:
-        return cont,'ECDHE-RSA-AES256-GCM-SHA384'
-    '''
+        return cipher_l
     
 main()
     

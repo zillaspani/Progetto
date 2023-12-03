@@ -1,7 +1,6 @@
 import logging
 import json
 import random
-import subprocess
 import time
 import setproctitle
 
@@ -11,7 +10,7 @@ class Sensore:
     process=None
     def __init__(self):
         try:
-            setproctitle.getproctitle()
+            #setproctitle.getproctitle()
             self.initConfig()
             setproctitle.setproctitle(self.name)
             logging.basicConfig(level=logging.INFO)
@@ -24,7 +23,6 @@ class Sensore:
             Inizia il processo di digestione del file JSON aggiungendo alle varie strutture dati i file di configurazione
         '''
         try:
-           time.sleep(3)
            with open("../config/sensore_config.json","rb") as x:
                 x=x.read()
                 config=json.loads(x)
@@ -48,6 +46,8 @@ class Sensore:
             self.humi_upper_bound=config['humidity_ub']
             self.humi_lower_bound=config['humidity_lb']
             self.roundig=config['rounding']
+            self.TEST_TIME_M=config['TEST_TIME_M']
+            self.END_TEST_M=config['END_TEST_M']
         except Exception as err:
             logging.error(err)
             logging.error("Loading behavior failed")
@@ -61,4 +61,18 @@ class Sensore:
         humidity=random.uniform(self.humi_lower_bound,self.humi_upper_bound)
         temperature=random.uniform(self.temp_lower_bound,self.temp_upper_bound)
         return {"umidita":round(humidity, self.roundig),"temperatura":round(temperature,self.roundig)}
+    
+    def test(self,start_time):
+        now_time=time.time()
+        delta=now_time-start_time
+        SECONDS=60
+        TEST_TIME=self.TEST_TIME_M*SECONDS
+        END_TEST=self.END_TEST_M*SECONDS
+        if delta < TEST_TIME:
+            pass
+        if delta > END_TEST:
+            print("Test done, bye")
+            exit()
+        if delta > TEST_TIME:
+            pass
     

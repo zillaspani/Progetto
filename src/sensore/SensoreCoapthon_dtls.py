@@ -53,31 +53,8 @@ def initClient(cipher):
 
 def main():
     start_time=time.time()
-    '''
-    try:
-        sensore= SensoreCoapthon(client=None) 
-        hostname= (sensore.address,sensore.port)
-        _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        _sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        _sock = wrap_client(_sock,
-                    cert_reqs=ssl.CERT_REQUIRED,
-                    ca_certs='../src/certs/t/ca-cert.pem',
-                    ciphers='DHE-RSA-AES256-GCM-SHA384',
-                    do_handshake_on_connect=True
-                    )
-        
-        client = HelperClient(hostname,sock=_sock,cb_ignore_read_exception=ignore_read)
-        sensore.set_client(client) 
-    except Exception as ex:
-        logging.exception(ex)
-        logging.error("Sensore non inizializzato")
-        client.close()
-    '''
     cipher=cipher_l
-    first_con=False
-    #cont=0  
     while True:
-
         try:
             sensore= SensoreCoapthon(client=None)
             hostname= (sensore.address,sensore.port)
@@ -93,8 +70,7 @@ def main():
             while True:
                 time.sleep(sensore.time_unit)
                 #Inserire qui i metodi di routine
-                #cont,behav=behavioral(cont)
-                behav=behavioral(start_time)
+                behav=behavioral(start_time,sensore.TEST_TIME_M,sensore.END_TEST_M)
                 if behav!=cipher:
                     logging.info("#########################################")
                     logging.info("Sensor change ciphersuite")
@@ -103,11 +79,6 @@ def main():
                     cipher=behav
                     break
                 sensore.send_data()
-                if not first_con:
-                    first_con=True
-                    time.sleep(1)
-                    command = ["/usr/bin/x-terminal-emulator","-e","python3","../src/sensore/logger.py",proc_name]
-                    subprocess.Popen(command)
 
         except Exception as ex:
             logging.error(ex)
@@ -116,9 +87,9 @@ def main():
             client.close()
             exit()
 
-def behavioral(start_time):
-    TEST_TIME_M=1.5#durata in minuti
-    END_TEST_M=3#durata in minuti
+def behavioral(start_time,TEST_TIME_M,END_TEST_M):
+    #TEST_TIME_M durata in minuti
+    #END_TEST_M durata in minuti
     now_time=time.time()
     delta=now_time-start_time
     SECONDS=60
@@ -132,15 +103,6 @@ def behavioral(start_time):
     if delta > TEST_TIME:
         return cipher_l
     
-    '''
-    cont=cont+1
-    if cont>=10 and cont <=15:
-        if cont==15:
-            return 0,'ECDHE-RSA-AES128-GCM-SHA256'
-        return cont,'ECDHE-RSA-AES128-GCM-SHA256'
-    if cont<10:
-        return cont,'ECDHE-RSA-AES256-GCM-SHA384'
-    '''
     
 main()
     
